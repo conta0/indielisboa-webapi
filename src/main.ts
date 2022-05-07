@@ -21,10 +21,25 @@ const database: any = {
     },
     findSales() {
         return [];
+    },
+    createSale(ignore: any) {
+        return ignore;
+    },
+    findUsers() {
+        return [
+            "user-1",
+            "user-2"
+        ]
+    },
+    createUser(ignore: any) {
+        return ignore;
+    },
+    updateUser(userId: string, details: any) {
+        console.log(userId, details);
     }
 };
-// ------------------------------ Placeholder Database ------------------------------ //
 
+// -------------------------------------------------------------------------------- //
 const app: Express = express();
 const PORT: number = Number(process.env.PORT) || 8080;
 const ROUTER = initRouter(database);
