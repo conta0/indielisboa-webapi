@@ -1,7 +1,7 @@
 import express, {Request, Response} from "express";
 import moment from "moment";
 
-import {Location, Sale, SaleItem, User} from "./model";
+import {Location, Sale, SaleItem} from "./model";
 import {ERRORS as Errors, APIError} from "./errors";
 
 // Moment.js spams warnings for badly formatted dates. This option supresses them. 
@@ -53,21 +53,28 @@ interface UpdateUserDto {
     role?: string,
 }
 
-interface Authentication extends Request {
-    auth: {
-        userId: string,
-        role: number,
-    }
+interface User {
+    userId: string,
+    role: string,
+}
+
+interface Authentication {
+    userId: string,
+    role: string,
+}
+
+interface RequestAuthentication extends Request {
+    auth: Authentication,
 }
 
 const DATE_FORMAT = "YYYY-MM-DDThh:mm:ssZ";
 
-const ROLE_AUTHORIZATION_COOKIE = "Role-Authorization";
+const USER_AUTHENTICATION_COOKIE = "User-Authentication";
 // Different levels of permissions for possible roles (binary mask).
 // Byte 0: create new sales, view detailed product info, etc
 // Byte 1: manage products, manage locations, manage user accounts (i.e. maximum privileges)
 enum Role {
-    COMMON = 0b00,
+    NONE = 0b00,
     SELLER = 0b01,
     ADMIN = 0b11,
 };
@@ -75,72 +82,138 @@ enum Role {
 export function initRouter(database: any) {
     const router = express.Router();
     
-    // ------------------------------ TODO Authentication ------------------------------
+    // ------------------------------ TODO Proper Authentication ------------------------------
     router.use(placeholderAuth);
-    const AUTH_KEYS = new Map<string, Role>();
-    AUTH_KEYS.set("guest-1", Role.COMMON);
-    AUTH_KEYS.set("seller", Role.SELLER);
-    AUTH_KEYS.set("admin", Role.ADMIN);
 
     function placeholderAuth(request: Request, response: Response, next: any) {
         console.log("auth");
 
-        //console.log(request.headers["role-authorization"]);
-        const userRoleCookie = request.cookies[ROLE_AUTHORIZATION_COOKIE];
-        console.log(`cookie value: ${userRoleCookie}`);
-        const role = AUTH_KEYS.get(userRoleCookie) ?? Role.COMMON;
+        const authenticationCookie: string = request.cookies[USER_AUTHENTICATION_COOKIE];
+        console.log(`cookie value: ${authenticationCookie}`);
+        
+        // If the cookie is valid, append authentication info to request
+        if (authenticationCookie != null) {
+            const auth: Authentication = JSON.parse(Buffer.from(authenticationCookie, "base64").toString());
 
-        const req: Authentication = request as any;
-        req.auth = {
-            userId: userRoleCookie,
-            role: role || Role.COMMON
-        };
-        console.log(req.auth);
+            (request as RequestAuthentication).auth = {
+                userId: auth.userId,
+                role: auth.role.toUpperCase(),
+            };
+            console.log("auth:", auth);
+        }
         next();
     }
 
+    function loginUser(request: Request, response: Response) {
+        console.log("login");
+
+        // If the user is already logged in, this step is skipped
+        if ((request as RequestAuthentication).auth == null ) {
+            const authRegex: RegExp = /^Basic username=[a-z]\w{2,}&password=\w{3,}$/gi;
+            const basicAuthentication: string = request.headers.authorization || "";
+
+            // Authentication format is valid
+            if (authRegex.test(basicAuthentication)) {
+                // Get username and password
+                const matches = basicAuthentication.match(/=[^&]+/gi);
+                const username = matches?.at(0)?.slice(1);
+                const password = matches?.at(1)?.slice(1);
+
+                // Check user credentials
+                const user: User = database.getUserWithCredentials(username, password);
+
+                // User is now logged in. Set cookie for future requests.
+                if (user != null) {
+                    const auth: Authentication = {
+                        userId: user.userId,
+                        role: user.role.toUpperCase(),
+                    };
+
+                    const cookie: string = Buffer.from(JSON.stringify(auth)).toString("base64");
+                    response.cookie(USER_AUTHENTICATION_COOKIE, cookie);
+                    return sendEmpty(response, 204);
+                }
+            }
+
+            response.setHeader("WWW-Authenticate", "Basic");
+            return sendError(response, 401, Errors.AUTH_INVALID_LOGIN);
+        }
+
+        console.log("already logged in");
+        sendEmpty(response, 204);
+    }
+
+    function logoutUser(request: Request, response: Response) {
+        console.log("logout");
+        
+        // Clear cookie
+        response.clearCookie(USER_AUTHENTICATION_COOKIE);
+        sendEmpty(response, 204);
+    }
     // --------------------------------------------------------------------------------
+
+    // Authentication
+    router.post("/auth/login", loginUser);
+    router.post("/auth/logout", logoutUser);
 
     // Products
 
     // Locations
     router.get("/locations", getLocations);
-    router.post("/locations", validateAdmin, postLocations);
+    router.post("/locations", isAuthenticated, isAdmin, postLocations);
 
     // Sales
-    router.get("/sales", validateAdmin, getSales);
-    router.post("/sales", validateSeller, postSales);
+    router.get("/sales", isAuthenticated, isAdmin, getSales);
+    router.post("/sales", isAuthenticated, isSeller, postSales);
 
     // Users
-    router.get("/users", validateAdmin, getUsers);
+    router.get("/users", isAuthenticated, isAdmin, getUsers);
     router.post("/users", postUsers);
-    router.patch("/users/:userId", patchUserById);
+    router.patch("/users/:userId", isAuthenticated, patchUserById);
 
     // Uncaught Server Errors
     router.use(serverErrorHandler);
     
     return router;
 
-    function validateAdmin(request: Request, response: Response, next: Function) {
+    function isAdmin(request: Request, response: Response, next: Function) {
         console.log("admin check");
-        if (hasRole(request as Authentication, Role.ADMIN)) {
+        
+        if (hasRole(request as RequestAuthentication, Role.ADMIN)) {
             return next();
         }
 
         sendError(response, 403, Errors.FORBIDDEN);
     }
     
-    function validateSeller(request: Request, response: Response, next: Function) {
+    function isSeller(request: Request, response: Response, next: Function) {
         console.log("seller check");
-        if (hasRole(request as Authentication, Role.SELLER)) {
+        if (hasRole(request as RequestAuthentication, Role.SELLER)) {
             return next();
         }
 
         sendError(response, 403, Errors.FORBIDDEN);
     }
 
-    function hasRole(request: Authentication, targetRole: Role): boolean {
-        const role = request.auth.role;
+    function isAuthenticated(request: Request, response: Response, next: Function) {
+        console.log("authenticated check");
+        
+        if ((request as RequestAuthentication).auth != null) {
+            return next();
+        }
+
+        // User isn't authenticated
+        response.setHeader("WWW-Authenticate", "Basic");
+        sendError(response, 401, Errors.AUTH_MUST_LOGIN);
+    }
+
+    function hasRole(request: RequestAuthentication, targetRole: Role): boolean {
+        // We want to retrieve a enum value indexed by a key (string), but doing it directly
+        // Enum[key] results in a compile error.
+        // We could disable typescript's type checking, with the annotation @ts-ignore, to bypass the error.
+        // While that solution works, we can avoid it by accessing the collection of enum keys first
+        // and then match the key.
+        let role: Role = Role[request.auth.role as keyof typeof Role];
         return (role & targetRole) === targetRole;
     }
 
@@ -217,7 +290,7 @@ export function initRouter(database: any) {
         console.log("post sales");
         
         const body = request.body;
-        const userId: string = (request as Authentication).auth.userId;
+        const userId: string = (request as RequestAuthentication).auth.userId;
         const newSale: CreateSaleDto = body;
         newSale.seller = userId;
 
@@ -273,10 +346,10 @@ export function initRouter(database: any) {
     function patchUserById(request: Request, response: Response) {
         console.log("patch user by id");
 
-        const userIdAuth: string = (request as Authentication).auth.userId;
+        const userIdAuth: string = (request as RequestAuthentication).auth.userId;
         const userIdParam: string = request.params.userId;
         const userDetails: UpdateUserDto = request.body;
-        const isAdmin: boolean = hasRole(request as Authentication, Role.ADMIN);
+        const isAdmin: boolean = hasRole(request as RequestAuthentication, Role.ADMIN);
 
         // Only admins, or the own user, can change their details
         if (!isAdmin && !(userIdAuth === userIdParam)) {

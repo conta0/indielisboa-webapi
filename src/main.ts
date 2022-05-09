@@ -10,6 +10,33 @@ const locationRepository = [
     {address: "location-3"},
 ];
 
+const userRepository = [
+    {
+        username: "admin",
+        password: "123",
+        userId: "admin",
+        role: "admin",
+    },
+    {
+        username: "seller",
+        password: "123",
+        userId: "seller",
+        role: "seller",
+    },
+    {
+        username: "guest1",
+        password: "123",
+        userId: "guest-1",
+        role: "none",
+    },
+    {
+        username: "guest2",
+        password: "123",
+        userId: "guest-2",
+        role: "none",
+    }
+]
+
 const database: any = {
     findLocations() {
         return locationRepository;
@@ -36,6 +63,15 @@ const database: any = {
     },
     updateUser(userId: string, details: any) {
         console.log(userId, details);
+    },
+    getUserWithCredentials(username: string, password: any) {
+        for (let user of userRepository) {
+            if (user.username === username && password === password) {
+                return user;
+            }
+        }
+        
+        return null;
     }
 };
 

@@ -82,6 +82,18 @@ const CREATE_USER_INVALID_EMAIL: APIError = {
     description: "'email' must be a valid email."
 }
 
+const AUTH_MUST_LOGIN: APIError = {
+    code: 4010000,
+    name: "auth_must_login",
+    description: "Must log in to an account."
+}
+
+const AUTH_INVALID_LOGIN: APIError = {
+    code: 4010001,
+    name: "auth_invalid_login",
+    description: "Basic Authentication. Must provide a username and password."
+}
+
 export const ERRORS = {
     INTERNAL_SERVER_ERROR,
     FORBIDDEN,
@@ -95,6 +107,7 @@ export const ERRORS = {
     CREATE_SALES_INVALID_LOCATION,
     CREATE_SALES_INVALID_QUANTITY,
     SEARCH_USERS_INVALID_ROLE,
-    CREATE_USER_INVALID_EMAIL
-
+    CREATE_USER_INVALID_EMAIL,
+    AUTH_INVALID_LOGIN,
+    AUTH_MUST_LOGIN
 }
