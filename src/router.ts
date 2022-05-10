@@ -379,6 +379,14 @@ export function initRouter(database: any): Router {
         if (!isAdmin) {
             userDetails.role = undefined;
         }
+
+        // Not a valid Role
+        userDetails.role = userDetails.role?.toUpperCase();
+        if (userDetails.role != null && !(userDetails.role in Role)) {
+            console.log("invalid role");
+            return sendError(response, 400, Errors.UPDATE_USER_INVALID_ROLE);
+        }
+
         database.updateUser(userIdParam, userDetails);
         sendEmpty(response, 204);
     }

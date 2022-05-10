@@ -1,4 +1,4 @@
-export type APIError = {
+export interface APIError {
     code: number,
     name: string,
     description: string
@@ -73,13 +73,19 @@ const CREATE_SALES_INVALID_QUANTITY: APIError = {
 const SEARCH_USERS_INVALID_ROLE: APIError = {
     code: 4000008,
     name: "search_user_invalid_role",
-    description: "'role' must be 'admin', 'seller' or 'common'."
+    description: "'role' must be one of the following: 'admin', 'seller' or 'none'."
 }
 
 const CREATE_USER_INVALID_EMAIL: APIError = {
     code: 4000009,
     name: "create_user_invalid_email",
     description: "'email' must be a valid email."
+}
+
+const UPDATE_USER_INVALID_ROLE: APIError = {
+    code: 4000010,
+    name: "update_user_invalid_role",
+    description: "'role' must be one of the following: 'admin', 'seller' or 'none'."
 }
 
 const AUTH_MUST_LOGIN: APIError = {
@@ -108,6 +114,7 @@ export const ERRORS = {
     CREATE_SALES_INVALID_QUANTITY,
     SEARCH_USERS_INVALID_ROLE,
     CREATE_USER_INVALID_EMAIL,
+    UPDATE_USER_INVALID_ROLE,
     AUTH_INVALID_LOGIN,
-    AUTH_MUST_LOGIN
+    AUTH_MUST_LOGIN,
 }
