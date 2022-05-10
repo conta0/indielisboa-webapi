@@ -64,9 +64,9 @@ const database: any = {
     updateUser(userId: string, details: any) {
         console.log(userId, details);
     },
-    getUserWithCredentials(username: string, password: any) {
+    getUserWithCredentials(username: string, password: string) {
         for (let user of userRepository) {
-            if (user.username === username && password === password) {
+            if (user.username === username && user.password === password) {
                 return user;
             }
         }

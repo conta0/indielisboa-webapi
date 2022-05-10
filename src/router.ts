@@ -1,4 +1,4 @@
-import express, {Request, Response} from "express";
+import express, {Request, Response, Router} from "express";
 import moment from "moment";
 
 import {Location, Sale, SaleItem} from "./model";
@@ -71,29 +71,30 @@ const DATE_FORMAT = "YYYY-MM-DDThh:mm:ssZ";
 
 const USER_AUTHENTICATION_COOKIE = "User-Authentication";
 // Different levels of permissions for possible roles (binary mask).
-// Byte 0: create new sales, view detailed product info, etc
-// Byte 1: manage products, manage locations, manage user accounts (i.e. maximum privileges)
+// Byte 0: create new sales, view detailed product info, etc.
+// Byte 1: manage products, manage locations, manage user accounts (i.e. maximum privileges).
 enum Role {
     NONE = 0b00,
     SELLER = 0b01,
     ADMIN = 0b11,
 };
 
-export function initRouter(database: any) {
+export function initRouter(database: any): Router {
     const router = express.Router();
     
     // ------------------------------ TODO Proper Authentication ------------------------------
-    router.use(placeholderAuth);
+    router.use(placeholderCookieAuth);
+    router.use(placeholderBasicAuth);
 
-    function placeholderAuth(request: Request, response: Response, next: any) {
-        console.log("auth");
-
+    function placeholderCookieAuth(request: Request, response: Response, next: any): void {
+        console.log("cookie auth");
+        
         const authenticationCookie: string = request.cookies[USER_AUTHENTICATION_COOKIE];
         console.log(`cookie value: ${authenticationCookie}`);
         
-        // If the cookie is valid, append authentication info to request
+        // If the cookie is valid, add authentication info to Request object.
         if (authenticationCookie != null) {
-            const auth: Authentication = JSON.parse(Buffer.from(authenticationCookie, "base64").toString());
+            const auth: Authentication = JSON.parse(decodeBase64(authenticationCookie));
 
             (request as RequestAuthentication).auth = {
                 userId: auth.userId,
@@ -101,49 +102,63 @@ export function initRouter(database: any) {
             };
             console.log("auth:", auth);
         }
+
         next();
     }
 
-    function loginUser(request: Request, response: Response) {
-        console.log("login");
+    function placeholderBasicAuth(request: Request, response: Response, next: any): void {
+        console.log("basic auth");
 
-        // If the user is already logged in, this step is skipped
-        if ((request as RequestAuthentication).auth == null ) {
-            const authRegex: RegExp = /^Basic username=[a-z]\w{2,}&password=\w{3,}$/gi;
-            const basicAuthentication: string = request.headers.authorization || "";
-
-            // Authentication format is valid
-            if (authRegex.test(basicAuthentication)) {
-                // Get username and password
-                const matches = basicAuthentication.match(/=[^&]+/gi);
-                const username = matches?.at(0)?.slice(1);
-                const password = matches?.at(1)?.slice(1);
-
-                // Check user credentials
-                const user: User = database.getUserWithCredentials(username, password);
-
-                // User is now logged in. Set cookie for future requests.
-                if (user != null) {
-                    const auth: Authentication = {
-                        userId: user.userId,
-                        role: user.role.toUpperCase(),
-                    };
-
-                    const cookie: string = Buffer.from(JSON.stringify(auth)).toString("base64");
-                    response.cookie(USER_AUTHENTICATION_COOKIE, cookie);
-                    return sendEmpty(response, 204);
-                }
-            }
-
-            response.setHeader("WWW-Authenticate", "Basic");
-            return sendError(response, 401, Errors.AUTH_INVALID_LOGIN);
+        // User is logged in. Nothing to do.
+        if (isAuthenticated(request)) {
+            return next();
         }
 
-        console.log("already logged in");
-        sendEmpty(response, 204);
+        const basicAuthRegex: RegExp = /^Basic [\w+/=]+$/gi;
+        const basicAuthHeader: string = request.headers.authorization || "";
+        
+        // Authentication format is valid.
+        if (basicAuthRegex.test(basicAuthHeader)) {
+            // Get username and password.
+            const decoded: string[] = decodeBase64(basicAuthHeader.slice(6)).split(":");
+            const username: string = decoded[0];
+            const password: string = decoded[1];
+
+            // Check user credentials.
+            const user: User = database.getUserWithCredentials(username, password);
+
+            // User is now logged in.
+            // Set cookie for future requests and add authentication info to Request object.
+            if (user != null) {
+                const auth: Authentication = {
+                    userId: user.userId,
+                    role: user.role.toUpperCase(),
+                };
+
+                const cookie: string = encodeBase64(JSON.stringify(auth));
+                response.cookie(USER_AUTHENTICATION_COOKIE, cookie);
+                (request as RequestAuthentication).auth = auth;
+            }
+        }
+        
+        // Continue even if authentication failed, because the user might be trying to access a public resource.
+        next();
     }
 
-    function logoutUser(request: Request, response: Response) {
+    function loginUser(request: Request, response: Response): void {
+        console.log("login");
+
+        // User is logged in. Nothing to do.
+        if (isAuthenticated(request)) {
+            console.log("logged in");
+            return sendEmpty(response, 204);
+        }
+
+        response.setHeader("WWW-Authenticate", "Basic");
+        sendError(response, 401, Errors.AUTH_INVALID_LOGIN);
+    }
+
+    function logoutUser(request: Request, response: Response): void {
         console.log("logout");
         
         // Clear cookie
@@ -160,23 +175,23 @@ export function initRouter(database: any) {
 
     // Locations
     router.get("/locations", getLocations);
-    router.post("/locations", isAuthenticated, isAdmin, postLocations);
+    router.post("/locations", checkAuthenticated, checkAdmin, postLocations);
 
     // Sales
-    router.get("/sales", isAuthenticated, isAdmin, getSales);
-    router.post("/sales", isAuthenticated, isSeller, postSales);
+    router.get("/sales", checkAuthenticated, checkAdmin, getSales);
+    router.post("/sales", checkAuthenticated, checkSeller, postSales);
 
     // Users
-    router.get("/users", isAuthenticated, isAdmin, getUsers);
+    router.get("/users", checkAuthenticated, checkAdmin, getUsers);
     router.post("/users", postUsers);
-    router.patch("/users/:userId", isAuthenticated, patchUserById);
+    router.patch("/users/:userId", checkAuthenticated, patchUserById);
 
     // Uncaught Server Errors
     router.use(serverErrorHandler);
     
     return router;
 
-    function isAdmin(request: Request, response: Response, next: Function) {
+    function checkAdmin(request: Request, response: Response, next: Function): void {
         console.log("admin check");
         
         if (hasRole(request as RequestAuthentication, Role.ADMIN)) {
@@ -186,8 +201,9 @@ export function initRouter(database: any) {
         sendError(response, 403, Errors.FORBIDDEN);
     }
     
-    function isSeller(request: Request, response: Response, next: Function) {
+    function checkSeller(request: Request, response: Response, next: Function) {
         console.log("seller check");
+        
         if (hasRole(request as RequestAuthentication, Role.SELLER)) {
             return next();
         }
@@ -195,16 +211,19 @@ export function initRouter(database: any) {
         sendError(response, 403, Errors.FORBIDDEN);
     }
 
-    function isAuthenticated(request: Request, response: Response, next: Function) {
+    function checkAuthenticated(request: Request, response: Response, next: Function): void {
         console.log("authenticated check");
         
-        if ((request as RequestAuthentication).auth != null) {
+        if (isAuthenticated(request)) {
             return next();
         }
 
-        // User isn't authenticated
         response.setHeader("WWW-Authenticate", "Basic");
         sendError(response, 401, Errors.AUTH_MUST_LOGIN);
+    }
+
+    function isAuthenticated(request: Request): boolean {
+        return (request as RequestAuthentication).auth != null;
     }
 
     function hasRole(request: RequestAuthentication, targetRole: Role): boolean {
@@ -217,14 +236,14 @@ export function initRouter(database: any) {
         return (role & targetRole) === targetRole;
     }
 
-    function getLocations(request: Request, response: Response) {
+    function getLocations(request: Request, response: Response): void {
         console.log("get locations");
     
         const locations: Location[] = database.findLocations();
         sendResult(response, 200, locations);
     }
 
-    function postLocations(request: Request, response: Response) {
+    function postLocations(request: Request, response: Response): void {
         console.log("post locations");
 
         const body = request.body;
@@ -234,7 +253,7 @@ export function initRouter(database: any) {
         sendResult(response, 201, location);
     }
 
-    function getSales(request: Request, response: Response) {
+    function getSales(request: Request, response: Response): void {
         console.log("get sales");
 
         // Default values
@@ -286,7 +305,7 @@ export function initRouter(database: any) {
         sendResult(response, 200, sales);
     }
 
-    function postSales(request: Request, response: Response) {
+    function postSales(request: Request, response: Response): void {
         console.log("post sales");
         
         const body = request.body;
@@ -315,7 +334,7 @@ export function initRouter(database: any) {
         sendResult(response, 201, createdSale);
     }
 
-    function getUsers(request: Request, response: Response) {
+    function getUsers(request: Request, response: Response): void {
         console.log("get users");
 
         // Validate request format
@@ -329,7 +348,7 @@ export function initRouter(database: any) {
         sendResult(response, 200, userList);
     }
 
-    function postUsers(request: Request, response: Response) {
+    function postUsers(request: Request, response: Response): void {
         console.log("post users");
 
         // Validate request format
@@ -343,7 +362,7 @@ export function initRouter(database: any) {
         sendResult(response, 201, createdUser);
     }
 
-    function patchUserById(request: Request, response: Response) {
+    function patchUserById(request: Request, response: Response): void {
         console.log("patch user by id");
 
         const userIdAuth: string = (request as RequestAuthentication).auth.userId;
@@ -364,26 +383,34 @@ export function initRouter(database: any) {
         sendEmpty(response, 204);
     }
 
-    function serverErrorHandler(error: Error, request: Request, respose: Response, next: Function) {
+    function serverErrorHandler(error: Error, request: Request, respose: Response, next: Function): void {
         console.error(error);
 
         sendError(respose, 500, Errors.INTERNAL_SERVER_ERROR);
     }
 
-    function sendEmpty(response: Response, status: number) {
+    function sendEmpty(response: Response, status: number): void {
         response.status(status);
         response.end();
     }
     
-    function sendResult(response: Response, status: number, result: any) {
+    function sendResult(response: Response, status: number, result: any): void {
         response.status(status);
         response.json({result: result});
         response.end();
     }
     
-    function sendError(response: Response, status: number, error: APIError) {
+    function sendError(response: Response, status: number, error: APIError): void {
         response.status(status);
         response.json({error: error});
         response.end();
+    }
+
+    function encodeBase64(text: string): string {
+        return Buffer.from(text).toString("base64");
+    }
+
+    function decodeBase64(encoded: string): string {
+        return Buffer.from(encoded, "base64").toString();
     }
 }
