@@ -1,0 +1,9 @@
+{
+    "exec": "ts-node src/server.ts",
+    "watch": ["src"],
+    "ext": "ts",
+    "ignore": ["src/api"],
+    "events": {
+        "restart": "tsoa spec-and-routes"
+    }
+}

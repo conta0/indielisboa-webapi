@@ -1,0 +1,578 @@
+{
+	"components": {
+		"examples": {},
+		"headers": {},
+		"parameters": {},
+		"requestBodies": {},
+		"responses": {},
+		"schemas": {
+			"SaleItem": {
+				"description": "Information about a sold product.",
+				"properties": {
+					"productId": {
+						"type": "string"
+					},
+					"locationId": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"price": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					}
+				},
+				"required": [
+					"productId",
+					"locationId",
+					"quantity"
+				],
+				"type": "object",
+				"additionalProperties": false,
+				"example": {
+					"productId": "product-1",
+					"locationId": "location-1",
+					"quantity": 5,
+					"price": 10
+				}
+			},
+			"Sale": {
+				"description": "Information about a sale.",
+				"properties": {
+					"saleId": {
+						"type": "string"
+					},
+					"date": {
+						"type": "string"
+					},
+					"sellerId": {
+						"type": "string"
+					},
+					"totalPrice": {
+						"type": "number",
+						"format": "double"
+					},
+					"list": {
+						"items": {
+							"$ref": "#/components/schemas/SaleItem"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"saleId",
+					"date",
+					"sellerId",
+					"totalPrice",
+					"list"
+				],
+				"type": "object",
+				"additionalProperties": false,
+				"example": {
+					"saleId": "sale-1",
+					"date": "2022-12-31T00:00:00Z",
+					"sellerId": "user-1",
+					"totalPrice": 50,
+					"list": [
+						{
+							"productId": "product-1",
+							"locationId": "location-1",
+							"quantity": 5,
+							"price": 10
+						}
+					]
+				}
+			},
+			"SearchSalesResult": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"sales": {
+								"items": {
+									"$ref": "#/components/schemas/Sale"
+								},
+								"type": "array"
+							}
+						},
+						"required": [
+							"sales"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ValidationError": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							400
+						],
+						"nullable": false
+					},
+					"error": {
+						"properties": {
+							"fields": {
+								"properties": {},
+								"additionalProperties": {
+									"properties": {
+										"value": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "number",
+													"format": "double"
+												}
+											]
+										},
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"value",
+										"message"
+									],
+									"type": "object"
+								},
+								"type": "object"
+							},
+							"message": {
+								"type": "string"
+							}
+						},
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AuthenticationError": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							401
+						],
+						"nullable": false
+					},
+					"error": {
+						"properties": {},
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AuthorizationError": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							403
+						],
+						"nullable": false
+					},
+					"error": {
+						"properties": {},
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"InternalServerError": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							500
+						],
+						"nullable": false
+					},
+					"error": {
+						"properties": {},
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CreateSaleResult": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							201
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"sale": {
+								"$ref": "#/components/schemas/Sale"
+							}
+						},
+						"required": [
+							"sale"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CreateSaleItemParams": {
+				"properties": {
+					"productId": {
+						"type": "string"
+					},
+					"locationId": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					}
+				},
+				"required": [
+					"productId",
+					"locationId",
+					"quantity"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CreateSaleParams": {
+				"description": "Information necessary to create a new sale.",
+				"properties": {
+					"sellerId": {
+						"type": "string"
+					},
+					"list": {
+						"items": {
+							"$ref": "#/components/schemas/CreateSaleItemParams"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"sellerId",
+					"list"
+				],
+				"type": "object",
+				"additionalProperties": false,
+				"example": {
+					"sellerId": "user-1",
+					"list": [
+						{
+							"productId": "product-1",
+							"locationId": "location-1",
+							"quantity": 5
+						}
+					]
+				}
+			}
+		},
+		"securitySchemes": {}
+	},
+	"info": {
+		"title": "IndieLisboa Stock Management",
+		"version": "1.0.0",
+		"description": "Web API to view/edit product stock, register sales and manage user accounts.",
+		"license": {
+			"name": "ISC"
+		},
+		"contact": {}
+	},
+	"openapi": "3.0.0",
+	"paths": {
+		"/sales": {
+			"get": {
+				"operationId": "GetSales",
+				"responses": {
+					"200": {
+						"description": "Successfully returned a list of sales.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SearchSalesResult"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ValidationError"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"error": {
+												"fields": {
+													"limit": {
+														"message": "minimum 1",
+														"value": "0"
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthenticationError"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthorizationError"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/InternalServerError"
+								}
+							}
+						}
+					}
+				},
+				"description": "When a parameter is present, only sales with an **exact** match will be returned.",
+				"summary": "Get a list of past sales. You may specify search parameters.",
+				"tags": [
+					"Sales"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"description": "Limit the number of sales that are returned.",
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"format": "int32",
+							"type": "integer",
+							"minimum": 1
+						},
+						"example": 10
+					},
+					{
+						"description": "Used for pagination. When limit is present,\r\nchunks of sales will be skipped (e.g. if page=5 and limit=10, the first 50 sales will be skipped).",
+						"in": "query",
+						"name": "page",
+						"required": false,
+						"schema": {
+							"format": "int32",
+							"type": "integer",
+							"minimum": 0
+						},
+						"example": 0
+					},
+					{
+						"description": "Sales after this date (inclusive).",
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"format": "date-time",
+							"type": "string"
+						},
+						"example": "2022-01-01T00:00:00Z"
+					},
+					{
+						"description": "Sales before this date (inclusive).",
+						"in": "query",
+						"name": "endDate",
+						"required": false,
+						"schema": {
+							"format": "date-time",
+							"type": "string"
+						},
+						"example": "2022-12-31T00:00:00Z"
+					},
+					{
+						"description": "Sales by this seller.",
+						"in": "query",
+						"name": "sellerId",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"example": "user-1"
+					},
+					{
+						"description": "Sales with this product.",
+						"in": "query",
+						"name": "productId",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"example": "product-1"
+					},
+					{
+						"description": "Sales at this location.",
+						"in": "query",
+						"name": "locationId",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"example": "location-1"
+					}
+				]
+			},
+			"post": {
+				"operationId": "PostSale",
+				"responses": {
+					"201": {
+						"description": "Successfully created a new sale.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CreateSaleResult"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ValidationError"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"error": {
+												"fields": {
+													"body.sellerId": {
+														"message": "invalid string value",
+														"value": 1
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthenticationError"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthorizationError"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/InternalServerError"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Create a new sale",
+				"tags": [
+					"Sales"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateSaleParams"
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "/"
+		}
+	]
+}
