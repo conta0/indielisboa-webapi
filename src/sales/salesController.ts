@@ -1,4 +1,8 @@
-import { Controller, Tags, Route, Get, Post, Query, Body, SuccessResponse, Response, } from "tsoa";
+import { Controller, Tags, Route, Get, Post, Query, Body, SuccessResponse, Response, Res, TsoaResponse, } from "tsoa";
+import { SalesService } from "./salesService";
+import { Sale, SaleItem } from "../model/sales";
+import { CreateSaleParams, CreateSaleItemParams } from "./salesDtos";
+import { BadRequestError, AuthenticationError, AuthorizationError, ServerError, NotFoundError } from "../common/interfaces";
 
 /**
  * Information about a point of sale.
@@ -11,81 +15,6 @@ import { Controller, Tags, Route, Get, Post, Query, Body, SuccessResponse, Respo
 export interface Location {
     locationId: string,
     address: string,
-}
-
-/**
- * Information about a sold product.
- * 
- * @example {
- *  "productId": "product-1",
- *  "locationId": "location-1",
- *  "quantity": 5,
- *  "price": 10
- * }
- * */
-export interface SaleItem {
-    productId: string,
-    locationId: string,
-    /** @isInt @minimum 1 */
-    quantity: number,
-    /** @minimum 0 */
-    price?: number
-}
-
-/**
- * Information about a sale.
- * 
- * @example {
- *  "saleId": "sale-1",
- *  "date": "2022-12-31T00:00:00Z",
- *  "sellerId": "user-1",
- *  "totalPrice": 50,
- *  "list": [
- *      {
- *          "productId": "product-1",
- *          "locationId": "location-1",
- *          "quantity": 5,
- *          "price": 10
- *      }
- *  ]
- * }
-*/
-export interface Sale {
-    saleId: string,
-    /** @isDateTime */
-    date: string,
-    sellerId: string,
-    totalPrice: number,
-    list: SaleItem[]
-}
-
-/**
- * Information necessary to create a new sale.
- * 
- * @example {
- *  "sellerId": "user-1",
- *  "list": [
- *      {
- *          "productId": "product-1",
- *          "locationId": "location-1",
- *          "quantity": 5
- *      }
- *  ]
- * }
- */
-interface CreateSaleParams {
-    sellerId: string,
-    list: CreateSaleItemParams[]
-}
-
-interface CreateSaleItemParams {
-    productId: string,
-    locationId: string,
-    /**
-     * @isInt Must be an integer >= 1. 
-     * @minimum 1 Minimum 1
-     */
-    quantity: number
 }
 
 export interface User {
@@ -113,6 +42,9 @@ const ROLE_VALUE: object = {
     [Role.SELLER]: 0b01,
     [Role.NONE]: 0b00
 };
+
+
+const salesService = new SalesService();
 
 @Route("sales")
 export class SaleController extends Controller {
@@ -152,7 +84,7 @@ export class SaleController extends Controller {
     @Get()
     @Tags(Tag.SALE)
     @SuccessResponse("200", "Successfully returned a list of sales.")
-    @Response<ValidationError>("400", "Bad Request", {
+    @Response<BadRequestError>("400", "Bad Request", {
         status: 400,
         error: {
             fields: {
@@ -165,7 +97,7 @@ export class SaleController extends Controller {
     })
     @Response<AuthenticationError>("401", "Unauthorized")
     @Response<AuthorizationError>("403", "Forbidden")
-    @Response<InternalServerError>("500", "Internal Server Error")
+    @Response<ServerError>("500", "Internal Server Error")
     public async getSales(
         @Query() limit?: number,
         @Query() page?: number,
@@ -175,10 +107,11 @@ export class SaleController extends Controller {
         @Query() productId?: string,
         @Query() locationId?: string
     ): Promise<SearchSalesResult> {
+        const sales = salesService.getSales();
         return {
             status: 200,
             data: {
-                sales: []
+                sales: sales
             }
         };
     }
@@ -189,7 +122,7 @@ export class SaleController extends Controller {
     @Post()
     @Tags(Tag.SALE)
     @SuccessResponse("201", "Successfully created a new sale.")
-    @Response<ValidationError>("400", "Bad Request", {
+    @Response<BadRequestError>("400", "Bad Request", {
         status: 400,
         error: {
             fields: {
@@ -202,40 +135,19 @@ export class SaleController extends Controller {
     })
     @Response<AuthenticationError>("401", "Unauthorized")
     @Response<AuthorizationError>("403", "Forbidden")
-    @Response<InternalServerError>("500", "Internal Server Error")
+    @Response<ServerError>("500", "Internal Server Error")
     public async postSale(
-        @Body() body: CreateSaleParams
-    ): Promise<CreateSaleResult> {
-        return {
-            status: 201,
-            data: {
-                sale: {
-                    saleId: "sale-1",
-                    date: "2022-12-31T00:00:00Z",
-                    sellerId: "user-1",
-                    totalPrice: 50,
-                    list: []
-                }
-            }
-        };
-    }
-}
-
-export interface InternalServerError {
-    status: 500,
-    error: {}
-}
-
-export interface ValidationError {
-    status: 400,
-    error: {
-        message?: string,
-        fields?: {
-            [key: string]: {
-                message: string,
-                value: string | number,
-            }
+        @Body() body: CreateSaleParams,
+        @Res() notFoundResponse: TsoaResponse<404, NotFoundError>
+    ): Promise<Sale> {
+        const result: any = salesService.createSale(body);
+        
+        // Handle Error
+        if (result.error) {
+            return notFoundResponse(404, {status:404, error: {}});
         }
+        
+        return result;
     }
 }
 
@@ -246,19 +158,9 @@ export interface SearchSalesResult {
     }
 }
 
-export interface AuthenticationError {
-    status: 401,
-    error: {}
-}
-
-export interface AuthorizationError {
-    status: 403,
-    error: {}
-}
-
 export interface CreateSaleResult {
     status: 201,
     data: {
-        "sale": Sale
+        sale: Sale
     }
 }

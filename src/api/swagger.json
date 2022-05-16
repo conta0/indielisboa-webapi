@@ -29,10 +29,11 @@
 				"required": [
 					"productId",
 					"locationId",
-					"quantity"
+					"quantity",
+					"price"
 				],
 				"type": "object",
-				"additionalProperties": false,
+				"additionalProperties": true,
 				"example": {
 					"productId": "product-1",
 					"locationId": "location-1",
@@ -71,7 +72,7 @@
 					"list"
 				],
 				"type": "object",
-				"additionalProperties": false,
+				"additionalProperties": true,
 				"example": {
 					"saleId": "sale-1",
 					"date": "2022-12-31T00:00:00Z",
@@ -116,9 +117,26 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": false
+				"additionalProperties": true
 			},
-			"ValidationError": {
+			"FieldErrors": {
+				"properties": {},
+				"type": "object",
+				"additionalProperties": {
+					"properties": {
+						"value": {},
+						"message": {
+							"type": "string"
+						}
+					},
+					"required": [
+						"message"
+					],
+					"type": "object"
+				}
+			},
+			"BadRequestError": {
+				"description": "JSON response format for a \"400 Bad Request\" error.",
 				"properties": {
 					"status": {
 						"type": "number",
@@ -130,31 +148,7 @@
 					"error": {
 						"properties": {
 							"fields": {
-								"properties": {},
-								"additionalProperties": {
-									"properties": {
-										"value": {
-											"anyOf": [
-												{
-													"type": "string"
-												},
-												{
-													"type": "number",
-													"format": "double"
-												}
-											]
-										},
-										"message": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"value",
-										"message"
-									],
-									"type": "object"
-								},
-								"type": "object"
+								"$ref": "#/components/schemas/FieldErrors"
 							},
 							"message": {
 								"type": "string"
@@ -168,9 +162,10 @@
 					"error"
 				],
 				"type": "object",
-				"additionalProperties": false
+				"additionalProperties": true
 			},
 			"AuthenticationError": {
+				"description": "JSON response format for a \"401 Unauthorized\" error.",
 				"properties": {
 					"status": {
 						"type": "number",
@@ -181,6 +176,9 @@
 					},
 					"error": {
 						"properties": {},
+						"additionalProperties": {
+							"type": "string"
+						},
 						"type": "object"
 					}
 				},
@@ -189,9 +187,10 @@
 					"error"
 				],
 				"type": "object",
-				"additionalProperties": false
+				"additionalProperties": true
 			},
 			"AuthorizationError": {
+				"description": "JSON response format for a \"403 Forbidden\" error.",
 				"properties": {
 					"status": {
 						"type": "number",
@@ -202,6 +201,9 @@
 					},
 					"error": {
 						"properties": {},
+						"additionalProperties": {
+							"type": "string"
+						},
 						"type": "object"
 					}
 				},
@@ -210,9 +212,10 @@
 					"error"
 				],
 				"type": "object",
-				"additionalProperties": false
+				"additionalProperties": true
 			},
-			"InternalServerError": {
+			"ServerError": {
+				"description": "JSON response format for a \"500 Internal Server Error\" error.",
 				"properties": {
 					"status": {
 						"type": "number",
@@ -223,6 +226,9 @@
 					},
 					"error": {
 						"properties": {},
+						"additionalProperties": {
+							"type": "string"
+						},
 						"type": "object"
 					}
 				},
@@ -231,35 +237,7 @@
 					"error"
 				],
 				"type": "object",
-				"additionalProperties": false
-			},
-			"CreateSaleResult": {
-				"properties": {
-					"status": {
-						"type": "number",
-						"enum": [
-							201
-						],
-						"nullable": false
-					},
-					"data": {
-						"properties": {
-							"sale": {
-								"$ref": "#/components/schemas/Sale"
-							}
-						},
-						"required": [
-							"sale"
-						],
-						"type": "object"
-					}
-				},
-				"required": [
-					"status",
-					"data"
-				],
-				"type": "object",
-				"additionalProperties": false
+				"additionalProperties": true
 			},
 			"CreateSaleItemParams": {
 				"properties": {
@@ -281,7 +259,7 @@
 					"quantity"
 				],
 				"type": "object",
-				"additionalProperties": false
+				"additionalProperties": true
 			},
 			"CreateSaleParams": {
 				"description": "Information necessary to create a new sale.",
@@ -301,7 +279,7 @@
 					"list"
 				],
 				"type": "object",
-				"additionalProperties": false,
+				"additionalProperties": true,
 				"example": {
 					"sellerId": "user-1",
 					"list": [
@@ -312,6 +290,31 @@
 						}
 					]
 				}
+			},
+			"NotFoundError": {
+				"description": "JSON response format for a \"404 Not Found\" error.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							404
+						],
+						"nullable": false
+					},
+					"error": {
+						"properties": {},
+						"additionalProperties": {
+							"type": "string"
+						},
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": true
 			}
 		},
 		"securitySchemes": {}
@@ -346,7 +349,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/ValidationError"
+									"$ref": "#/components/schemas/BadRequestError"
 								},
 								"examples": {
 									"Example 1": {
@@ -391,7 +394,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/InternalServerError"
+									"$ref": "#/components/schemas/ServerError"
 								}
 							}
 						}
@@ -490,7 +493,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/CreateSaleResult"
+									"$ref": "#/components/schemas/Sale"
 								}
 							}
 						}
@@ -500,7 +503,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/ValidationError"
+									"$ref": "#/components/schemas/BadRequestError"
 								},
 								"examples": {
 									"Example 1": {
@@ -540,12 +543,22 @@
 							}
 						}
 					},
+					"404": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotFoundError"
+								}
+							}
+						}
+					},
 					"500": {
 						"description": "Internal Server Error",
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/InternalServerError"
+									"$ref": "#/components/schemas/ServerError"
 								}
 							}
 						}

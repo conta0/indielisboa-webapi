@@ -3,7 +3,7 @@
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { Controller, ValidationService, FieldErrors, ValidateError, TsoaRoute, HttpStatusCodeLiteral, TsoaResponse, fetchMiddlewares } from '@tsoa/runtime';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-import { SaleController } from './../controllers/salesController';
+import { SaleController } from './../sales/salesController';
 import type { RequestHandler } from 'express';
 import * as express from 'express';
 
@@ -16,9 +16,9 @@ const models: TsoaRoute.Models = {
             "productId": {"dataType":"string","required":true},
             "locationId": {"dataType":"string","required":true},
             "quantity": {"dataType":"integer","required":true,"validators":{"minimum":{"value":1}}},
-            "price": {"dataType":"double","validators":{"minimum":{"value":0}}},
+            "price": {"dataType":"double","required":true,"validators":{"minimum":{"value":0}}},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "Sale": {
@@ -30,7 +30,7 @@ const models: TsoaRoute.Models = {
             "totalPrice": {"dataType":"double","required":true},
             "list": {"dataType":"array","array":{"dataType":"refObject","ref":"SaleItem"},"required":true},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "SearchSalesResult": {
@@ -39,52 +39,50 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[200],"required":true},
             "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"sales":{"dataType":"array","array":{"dataType":"refObject","ref":"Sale"},"required":true}},"required":true},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "ValidationError": {
+    "FieldErrors": {
+        "dataType": "refObject",
+        "properties": {
+        },
+        "additionalProperties": {"dataType":"nestedObjectLiteral","nestedProperties":{"value":{"dataType":"any"},"message":{"dataType":"string","required":true}}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "BadRequestError": {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[400],"required":true},
-            "error": {"dataType":"nestedObjectLiteral","nestedProperties":{"fields":{"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"nestedObjectLiteral","nestedProperties":{"value":{"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"double"}],"required":true},"message":{"dataType":"string","required":true}}}},"message":{"dataType":"string"}},"required":true},
+            "error": {"dataType":"nestedObjectLiteral","nestedProperties":{"fields":{"ref":"FieldErrors"},"message":{"dataType":"string"}},"required":true},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "AuthenticationError": {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[401],"required":true},
-            "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"required":true},
+            "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"string"},"required":true},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "AuthorizationError": {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[403],"required":true},
-            "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"required":true},
+            "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"string"},"required":true},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "InternalServerError": {
+    "ServerError": {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[500],"required":true},
-            "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"required":true},
+            "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"string"},"required":true},
         },
-        "additionalProperties": false,
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "CreateSaleResult": {
-        "dataType": "refObject",
-        "properties": {
-            "status": {"dataType":"enum","enums":[201],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"sale":{"ref":"Sale","required":true}},"required":true},
-        },
-        "additionalProperties": false,
+        "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "CreateSaleItemParams": {
@@ -94,7 +92,7 @@ const models: TsoaRoute.Models = {
             "locationId": {"dataType":"string","required":true},
             "quantity": {"dataType":"integer","required":true,"validators":{"isInt":{"errorMsg":"Must be an integer >= 1."},"minimum":{"errorMsg":"Minimum 1","value":1}}},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "CreateSaleParams": {
@@ -103,7 +101,16 @@ const models: TsoaRoute.Models = {
             "sellerId": {"dataType":"string","required":true},
             "list": {"dataType":"array","array":{"dataType":"refObject","ref":"CreateSaleItemParams"},"required":true},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "NotFoundError": {
+        "dataType": "refObject",
+        "properties": {
+            "status": {"dataType":"enum","enums":[404],"required":true},
+            "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"string"},"required":true},
+        },
+        "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 };
@@ -154,6 +161,7 @@ export function RegisterRoutes(app: express.Router) {
             function SaleController_postSale(request: any, response: any, next: any) {
             const args = {
                     body: {"in":"body","name":"body","required":true,"ref":"CreateSaleParams"},
+                    notFoundResponse: {"in":"res","name":"404","required":true,"ref":"NotFoundError"},
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -235,22 +243,22 @@ export function RegisterRoutes(app: express.Router) {
                 case 'request':
                     return request;
                 case 'query':
-                    return validationService.ValidateParam(args[key], request.query[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"throw-on-extras"});
+                    return validationService.ValidateParam(args[key], request.query[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
                 case 'path':
-                    return validationService.ValidateParam(args[key], request.params[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"throw-on-extras"});
+                    return validationService.ValidateParam(args[key], request.params[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
                 case 'header':
-                    return validationService.ValidateParam(args[key], request.header(name), name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"throw-on-extras"});
+                    return validationService.ValidateParam(args[key], request.header(name), name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
                 case 'body':
-                    return validationService.ValidateParam(args[key], request.body, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"throw-on-extras"});
+                    return validationService.ValidateParam(args[key], request.body, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
                 case 'body-prop':
-                    return validationService.ValidateParam(args[key], request.body[name], name, fieldErrors, 'body.', {"noImplicitAdditionalProperties":"throw-on-extras"});
+                    return validationService.ValidateParam(args[key], request.body[name], name, fieldErrors, 'body.', {"noImplicitAdditionalProperties":"ignore"});
                 case 'formData':
                     if (args[key].dataType === 'file') {
-                        return validationService.ValidateParam(args[key], request.file, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"throw-on-extras"});
+                        return validationService.ValidateParam(args[key], request.file, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
                     } else if (args[key].dataType === 'array' && args[key].array.dataType === 'file') {
-                        return validationService.ValidateParam(args[key], request.files, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"throw-on-extras"});
+                        return validationService.ValidateParam(args[key], request.files, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
                     } else {
-                        return validationService.ValidateParam(args[key], request.body[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"throw-on-extras"});
+                        return validationService.ValidateParam(args[key], request.body[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
                     }
                 case 'res':
                     return responder(response);

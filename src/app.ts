@@ -75,17 +75,12 @@ import express, { Express, Request, Response, Router } from "express";
 import swaggerUI from "swagger-ui-express";
 import cookieParser from "cookie-parser";
 
-import { initRouter } from "./router";
-
 export const app: Express = express();
 
 // OpenAPI specification
 import API_SPECIFICATION from "./api/swagger.json";
 const API_PATH = "/api/v1";
 API_SPECIFICATION.servers[0].url = API_PATH;
-
-
-const API_ROUTER = initRouter(database);
 
 // JSON middleware
 app.use(express.json());
@@ -103,47 +98,10 @@ app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(API_SPECIFICATION));
 
 // API Routes
 import { RegisterRoutes } from "./api/routes";
-import { ValidateError } from "tsoa";
-const API_ROUTER_2 = express.Router();
-RegisterRoutes(API_ROUTER_2);
-app.use(API_PATH, API_ROUTER_2);
+import { requestErrorHandler } from "./common/errorsController";
+const ROUTER = express.Router();
+RegisterRoutes(ROUTER);
+app.use(API_PATH, ROUTER);
+
+// Default Error Handler
 app.use(requestErrorHandler);
-
-function requestErrorHandler(error: Error, request: Request, response: Response, next: Function): void {
-    console.error(error);
-    const type = error.constructor;
-    switch(type) {
-        case ValidateError:
-           validaErrorResponse(response, error as ValidateError);
-           break;
-        case SyntaxError:
-            syntaxErrorResponse(response);
-        default:
-            defaultErrorResponse(response);
-    }
-}
-
-function validaErrorResponse(response: Response, error: ValidateError): void {
-    response.status(400).json({
-        status: 400,
-        error: {
-            fields: error.fields
-        }
-    });
-}
-
-function syntaxErrorResponse(response: Response): void {
-    response.status(400).json({
-        status: 400,
-        error: {
-            message: "Expected a JSON request."
-        }
-    })
-}
-
-function defaultErrorResponse(response: Response): void {
-    response.status(500).json({
-        status: 500,
-        error: {}
-    })
-}
