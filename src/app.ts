@@ -124,8 +124,8 @@ const validatorOptions = {
 app.use(OpenApiValidator.middleware(validatorOptions));
 
 // Routes
-app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(openapiSpec));
 app.get("/api-docs/openapi.json", (request: Request, response: Response) => response.status(200).json(openapiSpec));
+app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(openapiSpec));
 app.use("/api/v1", ROUTER);
 
 
