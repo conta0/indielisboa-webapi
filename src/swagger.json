@@ -1,0 +1,2037 @@
+{
+	"components": {
+		"examples": {},
+		"headers": {},
+		"parameters": {},
+		"requestBodies": {},
+		"responses": {},
+		"schemas": {
+			"Location": {
+				"description": "Information about a location.",
+				"properties": {
+					"locationId": {
+						"type": "string"
+					},
+					"address": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"locationId",
+					"address"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"locationId": "location-1",
+					"address": "Location 1"
+				}
+			},
+			"SearchLocationsResult": {
+				"description": "JSON response format for a search locations operation.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"locations": {
+								"items": {
+									"$ref": "#/components/schemas/Location"
+								},
+								"type": "array"
+							}
+						},
+						"required": [
+							"locations"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 200,
+					"data": {
+						"locations": [
+							{
+								"locationId": "location-1",
+								"address": "Location 1"
+							},
+							{
+								"locationId": "location-2",
+								"address": "Location 2"
+							}
+						]
+					}
+				}
+			},
+			"ServerErrorResponse": {
+				"description": "JSON response format for a \"500 Internal Server Error\" error.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							500
+						],
+						"nullable": false
+					},
+					"error": {
+						"properties": {},
+						"additionalProperties": {
+							"type": "string"
+						},
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 500,
+					"error": {}
+				}
+			},
+			"CreateLocationResult": {
+				"description": "JSON response format for a create location operation.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							201
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"location": {
+								"$ref": "#/components/schemas/Location"
+							}
+						},
+						"required": [
+							"location"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 201,
+					"data": {
+						"created": {
+							"locationId": "location-1",
+							"address": "Location 1"
+						}
+					}
+				}
+			},
+			"FieldErrors": {
+				"properties": {},
+				"type": "object",
+				"additionalProperties": {
+					"properties": {
+						"value": {},
+						"message": {
+							"type": "string"
+						}
+					},
+					"required": [
+						"message"
+					],
+					"type": "object"
+				}
+			},
+			"BadRequestErrorResponse": {
+				"description": "JSON response format for a \"400 Bad Request\" error.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							400
+						],
+						"nullable": false
+					},
+					"error": {
+						"properties": {
+							"fields": {
+								"$ref": "#/components/schemas/FieldErrors"
+							},
+							"message": {
+								"type": "string"
+							}
+						},
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 400,
+					"error": {}
+				}
+			},
+			"AuthenticationErrorResponse": {
+				"description": "JSON response format for a \"401 Unauthorized\" error.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							401
+						],
+						"nullable": false
+					},
+					"error": {
+						"properties": {},
+						"additionalProperties": {
+							"type": "string"
+						},
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 401,
+					"error": {}
+				}
+			},
+			"AuthorizationErrorResponse": {
+				"description": "JSON response format for a \"403 Forbidden\" error.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							403
+						],
+						"nullable": false
+					},
+					"error": {
+						"properties": {},
+						"additionalProperties": {
+							"type": "string"
+						},
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 403,
+					"error": {}
+				}
+			},
+			"CreateLocationParams": {
+				"description": "JSON request format to create a new location.",
+				"properties": {
+					"address": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"address"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"address": "Location 1"
+				}
+			},
+			"ProductStatus": {
+				"enum": [
+					"available",
+					"sold out",
+					"last units",
+					"no info"
+				],
+				"type": "string"
+			},
+			"ProductPublicInfo": {
+				"properties": {
+					"productId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"price": {
+						"type": "number",
+						"format": "double"
+					},
+					"active": {
+						"type": "boolean"
+					},
+					"status": {
+						"$ref": "#/components/schemas/ProductStatus"
+					},
+					"images": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"category": {
+						"type": "string"
+					},
+					"stock": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"productId",
+					"name",
+					"description",
+					"price",
+					"active",
+					"status",
+					"images",
+					"category",
+					"stock"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"GetProductsResult": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"products": {
+								"items": {
+									"$ref": "#/components/schemas/ProductPublicInfo"
+								},
+								"type": "array"
+							}
+						},
+						"required": [
+							"products"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"ProductCategory": {
+				"enum": [
+					"tshirt",
+					"book",
+					"bag",
+					"poster"
+				],
+				"type": "string"
+			},
+			"GetProductByIdResult": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"$ref": "#/components/schemas/ProductPublicInfo"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"PatchProductResult": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					}
+				},
+				"required": [
+					"status"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"UpdateProductParams": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"price": {
+						"type": "number",
+						"format": "double"
+					},
+					"active": {
+						"type": "boolean"
+					}
+				},
+				"type": "object",
+				"additionalProperties": true
+			},
+			"SaleItem": {
+				"description": "Information about a sold product.",
+				"properties": {
+					"productId": {
+						"type": "string"
+					},
+					"locationId": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					},
+					"price": {
+						"type": "number",
+						"format": "double",
+						"minimum": 0
+					}
+				},
+				"required": [
+					"productId",
+					"locationId",
+					"quantity",
+					"price"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"productId": "product-1",
+					"locationId": "location-1",
+					"quantity": 5,
+					"price": 10
+				}
+			},
+			"Sale": {
+				"description": "Information about a sale.",
+				"properties": {
+					"saleId": {
+						"type": "string"
+					},
+					"date": {
+						"type": "string"
+					},
+					"sellerId": {
+						"type": "string"
+					},
+					"totalPrice": {
+						"type": "number",
+						"format": "double"
+					},
+					"list": {
+						"items": {
+							"$ref": "#/components/schemas/SaleItem"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"saleId",
+					"date",
+					"sellerId",
+					"totalPrice",
+					"list"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"saleId": "sale-1",
+					"date": "2022-12-31T00:00:00Z",
+					"sellerId": "user-1",
+					"totalPrice": 50,
+					"list": [
+						{
+							"productId": "product-1",
+							"locationId": "location-1",
+							"quantity": 5,
+							"price": 10
+						}
+					]
+				}
+			},
+			"SearchSalesResult": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"sales": {
+								"items": {
+									"$ref": "#/components/schemas/Sale"
+								},
+								"type": "array"
+							}
+						},
+						"required": [
+							"sales"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"CreateSaleItemParams": {
+				"properties": {
+					"productId": {
+						"type": "string"
+					},
+					"locationId": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "integer",
+						"format": "int32",
+						"minimum": 1
+					}
+				},
+				"required": [
+					"productId",
+					"locationId",
+					"quantity"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"CreateSaleParams": {
+				"description": "Information necessary to create a new sale.",
+				"properties": {
+					"sellerId": {
+						"type": "string"
+					},
+					"list": {
+						"items": {
+							"$ref": "#/components/schemas/CreateSaleItemParams"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"sellerId",
+					"list"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"sellerId": "user-1",
+					"list": [
+						{
+							"productId": "product-1",
+							"locationId": "location-1",
+							"quantity": 5
+						}
+					]
+				}
+			},
+			"NotFoundErrorResponse": {
+				"description": "JSON response format for a \"404 Not Found\" error.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							404
+						],
+						"nullable": false
+					},
+					"error": {
+						"properties": {},
+						"additionalProperties": {
+							"type": "string"
+						},
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"error"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 404,
+					"error": {}
+				}
+			},
+			"LoginParams": {
+				"properties": {
+					"email": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"email"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"Role": {
+				"enum": [
+					"admin",
+					"seller",
+					"basic"
+				],
+				"type": "string"
+			},
+			"User": {
+				"description": "Information about a user.",
+				"properties": {
+					"userId": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"role": {
+						"$ref": "#/components/schemas/Role"
+					}
+				},
+				"required": [
+					"userId",
+					"email",
+					"name",
+					"role"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"userId": "user-1",
+					"email": "alice@mail.com",
+					"name": "Alice",
+					"role": "admin"
+				}
+			},
+			"GetUsersResult": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"users": {
+								"items": {
+									"$ref": "#/components/schemas/User"
+								},
+								"type": "array"
+							}
+						},
+						"required": [
+							"users"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"Email": {
+				"type": "string",
+				"format": "email"
+			},
+			"PostUsersResult": {
+				"description": "JSON response format for the \"POST /users\" endpoint.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							201
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"user": {
+								"properties": {
+									"role": {
+										"$ref": "#/components/schemas/Role"
+									},
+									"email": {
+										"$ref": "#/components/schemas/Email"
+									},
+									"name": {
+										"type": "string"
+									},
+									"userId": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"role",
+									"email",
+									"name",
+									"userId"
+								],
+								"type": "object"
+							}
+						},
+						"required": [
+							"user"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 201,
+					"data": {
+						"created": {
+							"userId": "user-1",
+							"name": "Alice",
+							"email": "alice@mail.com",
+							"role": "none"
+						}
+					}
+				}
+			},
+			"CreateUserParams": {
+				"description": "JSON request format to create a new user.",
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"email": {
+						"$ref": "#/components/schemas/Email"
+					}
+				},
+				"required": [
+					"name",
+					"email"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"name": "Alice",
+					"email": "alice@mail.com"
+				}
+			},
+			"GetUserProfileResult": {
+				"description": "JSON response format for the \"GET /users/{userId}\" endpoint.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"user": {
+								"properties": {
+									"email": {
+										"$ref": "#/components/schemas/Email"
+									},
+									"name": {
+										"type": "string"
+									},
+									"userId": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"email",
+									"name",
+									"userId"
+								],
+								"type": "object"
+							}
+						},
+						"required": [
+							"user"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 200,
+					"data": {
+						"user": {
+							"userId": "user-1",
+							"name": "Alice",
+							"email": "alice@mail.com"
+						}
+					}
+				}
+			},
+			"PatchUserProfileResult": {
+				"description": "JSON response format for the \"PATCH /users/{userId}\" endpoint.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"user": {
+								"properties": {
+									"email": {
+										"$ref": "#/components/schemas/Email"
+									},
+									"name": {
+										"type": "string"
+									},
+									"userId": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"email",
+									"name",
+									"userId"
+								],
+								"type": "object"
+							}
+						},
+						"required": [
+							"user"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 200,
+					"data": {
+						"user": {
+							"userId": "user-1",
+							"name": "Alice",
+							"email": "alice@mail.com"
+						}
+					}
+				}
+			},
+			"UpdateUserProfileParams": {
+				"description": "JSON request format to update an existing user's profile.",
+				"properties": {
+					"name": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"name": "Alice"
+				}
+			},
+			"GetUserFullInfoResult": {
+				"description": "JSON response format for the \"GET /users/{userId}/fullinfo\" endpoint.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"user": {
+								"properties": {
+									"role": {
+										"$ref": "#/components/schemas/Role"
+									},
+									"email": {
+										"$ref": "#/components/schemas/Email"
+									},
+									"name": {
+										"type": "string"
+									},
+									"userId": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"role",
+									"email",
+									"name",
+									"userId"
+								],
+								"type": "object"
+							}
+						},
+						"required": [
+							"user"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 200,
+					"data": {
+						"user": {
+							"userId": "user-1",
+							"name": "Alice",
+							"email": "alice@mail.com",
+							"role": "admin"
+						}
+					}
+				}
+			},
+			"PatchUserFullInfoResult": {
+				"description": "JSON response format for the \"PATCH /users/{userId}/fullinfo\" endpoint.",
+				"properties": {
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"user": {
+								"properties": {
+									"role": {
+										"$ref": "#/components/schemas/Role"
+									},
+									"email": {
+										"$ref": "#/components/schemas/Email"
+									},
+									"name": {
+										"type": "string"
+									},
+									"userId": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"role",
+									"email",
+									"name",
+									"userId"
+								],
+								"type": "object"
+							}
+						},
+						"required": [
+							"user"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"status",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": true,
+				"example": {
+					"status": 200,
+					"data": {
+						"user": {
+							"userId": "user-1",
+							"name": "Alice",
+							"email": "alice@mail.com",
+							"role": "admin"
+						}
+					}
+				}
+			},
+			"UpdateUserFullInfoParams": {
+				"description": "JSON request format to update an existing user's details.",
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"role": {
+						"$ref": "#/components/schemas/Role"
+					}
+				},
+				"required": [
+					"name",
+					"role"
+				],
+				"type": "object",
+				"additionalProperties": true
+			}
+		},
+		"securitySchemes": {
+			"jwt": {
+				"type": "api_key",
+				"in": "cookie",
+				"name": "auth_token"
+			}
+		}
+	},
+	"info": {
+		"title": "IndieLisboa Stock Management",
+		"version": "1.0.0",
+		"description": "Web API to view/edit product stock, register sales and manage user accounts.",
+		"license": {
+			"name": "ISC"
+		},
+		"contact": {}
+	},
+	"openapi": "3.0.0",
+	"paths": {
+		"/locations": {
+			"get": {
+				"operationId": "GetLocations",
+				"responses": {
+					"200": {
+						"description": "Successfully returned a list of locations.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SearchLocationsResult"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ServerErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Get a list of locations.",
+				"tags": [
+					"Locations"
+				],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
+				"parameters": []
+			},
+			"post": {
+				"operationId": "PostSale",
+				"responses": {
+					"201": {
+						"description": "Successfully created a new location.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CreateLocationResult"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/BadRequestErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"error": {
+												"fields": {
+													"body.address": {
+														"message": "invalid string value",
+														"value": 1
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthenticationErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthorizationErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ServerErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Create a new location.",
+				"tags": [
+					"Locations"
+				],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateLocationParams"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/products": {
+			"get": {
+				"operationId": "GetProducts",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GetProductsResult"
+								}
+							}
+						}
+					}
+				},
+				"description": "If a search criteria is applied, only products with an exact match will be returned.\r\nWhen applicable, if a search parameter has multiple values, returned products will match at least one of those values.",
+				"summary": "Get a list of products. You may specify a search criteria.",
+				"tags": [
+					"Products"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"description": "Limit the number of products returned.",
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"format": "int32",
+							"type": "integer",
+							"minimum": 1
+						},
+						"example": 10
+					},
+					{
+						"description": "Used for pagination. When limit is used,\r\nchunks of products will be skipped (e.g. if page=5 and limit=10, the first 50 products will be skipped).",
+						"in": "query",
+						"name": "page",
+						"required": false,
+						"schema": {
+							"format": "int32",
+							"type": "integer",
+							"minimum": 0
+						},
+						"example": 0
+					},
+					{
+						"description": "Minimum product price (inclusive).",
+						"in": "query",
+						"name": "priceMin",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number",
+							"minimum": 0
+						},
+						"example": 0
+					},
+					{
+						"description": "Maximum product price (inclusive).",
+						"in": "query",
+						"name": "priceMax",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number",
+							"maximum": 2000
+						},
+						"example": 50
+					},
+					{
+						"description": "Product availability.",
+						"in": "query",
+						"name": "status",
+						"required": false,
+						"schema": {
+							"type": "array",
+							"items": {
+								"$ref": "#/components/schemas/ProductStatus"
+							}
+						}
+					},
+					{
+						"description": "Product category.",
+						"in": "query",
+						"name": "category",
+						"required": false,
+						"schema": {
+							"$ref": "#/components/schemas/ProductCategory"
+						}
+					}
+				]
+			}
+		},
+		"/products/{productId}": {
+			"get": {
+				"operationId": "GetProductById",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GetProductByIdResult"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Get detailed information of a product.",
+				"tags": [
+					"Products"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "productId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			},
+			"patch": {
+				"operationId": "PatchProduct",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PatchProductResult"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Update a product's details.",
+				"tags": [
+					"Products"
+				],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "productId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateProductParams"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/sales": {
+			"get": {
+				"operationId": "GetSales",
+				"responses": {
+					"200": {
+						"description": "Successfully returned a list of sales.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SearchSalesResult"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/BadRequestErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"error": {
+												"fields": {
+													"limit": {
+														"message": "minimum 1",
+														"value": "0"
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthenticationErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthorizationErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ServerErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "If a search criteria is applied, only sales with an **exact** match will be returned.",
+				"summary": "Get a list of past sales. You may specify search parameters.",
+				"tags": [
+					"Sales"
+				],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"description": "Limit the number of sales returned.",
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"format": "int32",
+							"type": "integer",
+							"minimum": 1
+						},
+						"example": 10
+					},
+					{
+						"description": "Used for pagination. When limit is used,\r\nchunks of sales will be skipped (e.g. if page=5 and limit=10, the first 50 sales will be skipped).",
+						"in": "query",
+						"name": "page",
+						"required": false,
+						"schema": {
+							"format": "int32",
+							"type": "integer",
+							"minimum": 0
+						},
+						"example": 0
+					},
+					{
+						"description": "Sales after this date (inclusive).",
+						"in": "query",
+						"name": "startDate",
+						"required": false,
+						"schema": {
+							"format": "date-time",
+							"type": "string"
+						},
+						"example": "2022-01-01T00:00:00Z"
+					},
+					{
+						"description": "Sales before this date (inclusive).",
+						"in": "query",
+						"name": "endDate",
+						"required": false,
+						"schema": {
+							"format": "date-time",
+							"type": "string"
+						},
+						"example": "2022-12-31T00:00:00Z"
+					},
+					{
+						"description": "Sales by this seller.",
+						"in": "query",
+						"name": "sellerId",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"example": "user-1"
+					},
+					{
+						"description": "Sales with this product.",
+						"in": "query",
+						"name": "productId",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"example": "product-1"
+					},
+					{
+						"description": "Sales at this location.",
+						"in": "query",
+						"name": "locationId",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"example": "location-1"
+					}
+				]
+			},
+			"post": {
+				"operationId": "PostSales",
+				"responses": {
+					"201": {
+						"description": "Successfully created a new sale.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Sale"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/BadRequestErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"error": {
+												"fields": {
+													"body.sellerId": {
+														"message": "invalid string value",
+														"value": 1
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthenticationErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthorizationErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotFoundErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ServerErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Create a new sale.",
+				"tags": [
+					"Sales"
+				],
+				"security": [
+					{
+						"jwt": [
+							"seller"
+						]
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateSaleParams"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/login": {
+			"post": {
+				"operationId": "Login",
+				"responses": {
+					"204": {
+						"description": "No content"
+					}
+				},
+				"tags": [
+					"Auth"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LoginParams"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/logout": {
+			"post": {
+				"operationId": "Logout",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {},
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Auth"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/users": {
+			"get": {
+				"operationId": "GetUsers",
+				"responses": {
+					"200": {
+						"description": "Successfully returned a list of users.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GetUsersResult"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/BadRequestErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"error": {
+												"fields": {
+													"role": {
+														"message": "should be one of the following; [...]",
+														"value": "abc"
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "If a search criteria is applied, only users with an **exact** match will be returned.",
+				"summary": "Retrieve a list of users. You may specify search parameters.",
+				"tags": [
+					"Users"
+				],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"description": "Filter users by role.",
+						"in": "query",
+						"name": "role",
+						"required": false,
+						"schema": {
+							"$ref": "#/components/schemas/Role"
+						}
+					}
+				]
+			},
+			"post": {
+				"operationId": "CreateUser",
+				"responses": {
+					"201": {
+						"description": "Successfully created a new user.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PostUsersResult"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/BadRequestErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Create a new user.",
+				"tags": [
+					"Users"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateUserParams"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/users/{userId}": {
+			"get": {
+				"operationId": "GetUserProfile",
+				"responses": {
+					"200": {
+						"description": "Successfully returned the user's profile.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GetUserProfileResult"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotFoundErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Only the own user, or an account with sufficient privileges, may view this profile.",
+				"summary": "Retrieve the user profile.",
+				"tags": [
+					"Users"
+				],
+				"security": [
+					{
+						"jwt": [
+							"basic"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"description": "User's unique identifier.",
+						"in": "path",
+						"name": "userId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			},
+			"patch": {
+				"operationId": "PatchUserProfile",
+				"responses": {
+					"200": {
+						"description": "Successfully updated the user's profile.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PatchUserProfileResult"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/BadRequestErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"error": {
+												"fields": {
+													"body.name": {
+														"message": "invalid string value",
+														"value": 0
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotFoundErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Only the own user, or an account with sufficient privileges, may edit this profile.",
+				"summary": "Update user profile.",
+				"tags": [
+					"Users"
+				],
+				"security": [
+					{
+						"jwt": [
+							"basic"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"description": "User's unique identifier.",
+						"in": "path",
+						"name": "userId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateUserProfileParams"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/users/{userId}/fullinfo": {
+			"get": {
+				"operationId": "GetUserFullInfo",
+				"responses": {
+					"200": {
+						"description": "Successfully returned the user's information.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GetUserFullInfoResult"
+								}
+							}
+						}
+					}
+				},
+				"summary": "Retrieve the user's complete information.",
+				"tags": [
+					"Users"
+				],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"description": "User's unique identifier.",
+						"in": "path",
+						"name": "userId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			},
+			"patch": {
+				"operationId": "PatchUserFullInfo",
+				"responses": {
+					"200": {
+						"description": "Successfully updated the user details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PatchUserFullInfoResult"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad Request",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/BadRequestErrorResponse"
+								},
+								"examples": {
+									"Example 1": {
+										"value": {
+											"status": 400,
+											"error": {
+												"fields": {
+													"body.name": {
+														"message": "invalid string value",
+														"value": 0
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"summary": "Update user's role.",
+				"tags": [
+					"Users"
+				],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"description": "User's unique identifier.",
+						"in": "path",
+						"name": "userId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateUserFullInfoParams"
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "/"
+		}
+	]
+}

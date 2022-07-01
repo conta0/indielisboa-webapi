@@ -2,7 +2,7 @@
     "exec": "ts-node src/server.ts",
     "watch": ["src"],
     "ext": "ts",
-    "ignore": ["src/api"],
+    "ignore": ["src/routes.ts", "src/swagger.json"],
     "events": {
         "restart": "tsoa spec-and-routes"
     }

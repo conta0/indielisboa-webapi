@@ -2,8 +2,13 @@ import { FieldErrors } from "tsoa"
 
 /**
  * JSON response format for a "400 Bad Request" error.
+ * 
+ * @example {
+ *  "status": 400,
+ *  "error": {}
+ * }
  */
-export interface BadRequestError {
+export interface BadRequestErrorResponse {
     status: 400,
     error: {
         message?: string,
@@ -13,8 +18,13 @@ export interface BadRequestError {
 
 /**
  * JSON response format for a "401 Unauthorized" error.
+ * 
+ * @example {
+ *  "status": 401,
+ *  "error": {}
+ * }
  */
-export interface AuthenticationError {
+export interface AuthenticationErrorResponse {
     status: 401,
     error: {
         [key: string]: string
@@ -23,8 +33,13 @@ export interface AuthenticationError {
 
 /**
  * JSON response format for a "403 Forbidden" error.
+ * 
+ * @example {
+ *  "status": 403,
+ *  "error": {}
+ * }
  */
-export interface AuthorizationError {
+export interface AuthorizationErrorResponse {
     status: 403,
     error: {
         [key: string]: string
@@ -33,8 +48,13 @@ export interface AuthorizationError {
 
 /**
  * JSON response format for a "404 Not Found" error.
+ * 
+ * @example {
+ *  "status": 404,
+ *  "error": {}
+ * }
  */
-export interface NotFoundError {
+export interface NotFoundErrorResponse {
     status: 404,
     error: {
         [key: string]: string
@@ -43,8 +63,13 @@ export interface NotFoundError {
 
 /**
  * JSON response format for a "500 Internal Server Error" error.
+ * 
+ * @example {
+ *  "status": 500,
+ *  "error": {}
+ * }
  */
-export interface ServerError {
+export interface ServerErrorResponse {
     status: 500,
     error: {
         [key: string]: string

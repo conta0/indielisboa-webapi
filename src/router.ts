@@ -1,11 +1,11 @@
 import express, {Request, Response, Router} from "express";
-import moment from "moment";
+//import moment from "moment";
 
 import {Location, Sale, SaleItem} from "./model";
 import {ERRORS as Errors, APIError} from "./errors";
 
 // Moment.js spams warnings for badly formatted dates. This option supresses them. 
-moment.suppressDeprecationWarnings = true;
+//moment.suppressDeprecationWarnings = true;
 
 class ParameterCollection {
     list: Map<string, any> = new Map();
@@ -278,6 +278,7 @@ export function initRouter(database: any): Router {
         
         // Date Start
         // moment(undefined) -> current time. To avoid this quirky behaviour, we check for null first.
+        /*
         if (query.dateStart != null) {
             const momentStart = moment(query.dateStart);
             if (!momentStart.isValid()) {
@@ -294,6 +295,7 @@ export function initRouter(database: any): Router {
             }
             params.addIfExists("dateEnd", momentStart.format(DATE_FORMAT));
         }
+        */
 
         params.addIfExists("seller", query.seller);
         params.addIfExists("product", query.product);

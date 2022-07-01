@@ -5,10 +5,18 @@
     "spec": {
       "name": "IndieLisboa Stock Management",
       "description": "Web API to view/edit product stock, register sales and manage user accounts.",
-      "outputDirectory": "src/api",
-      "specVersion": 3
+      "outputDirectory": "src",
+      "specVersion": 3,
+      "securityDefinitions": {
+        "jwt": {
+          "type": "api_key",
+          "in": "cookie",
+          "name": "auth_token"
+        }
+      }
     },
     "routes": {
-      "routesDir": "src/api"
+      "routesDir": "src",
+      "authenticationModule": "./src/security/authorization"
     }
 }

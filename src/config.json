@@ -1,0 +1,12 @@
+{
+    "database": {
+        "url": "change this"
+    },
+    "app": {
+        "port": 443
+    },
+    "security": {
+        "secret": "change this",
+        "cookieName": "auth_token"
+    }
+}

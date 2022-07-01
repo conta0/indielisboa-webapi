@@ -1,64 +1,26 @@
-import { Controller, Tags, Route, Get, Post, Query, Body, SuccessResponse, Response, Res, TsoaResponse, } from "tsoa";
-import { SalesService } from "./salesService";
+import { Body, Controller, Get, Post, Query, Res, Response, Route, Security, SuccessResponse, Tags, TsoaResponse, } from "tsoa";
+import { AuthenticationErrorResponse, AuthorizationErrorResponse, BadRequestErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "../common/interfaces";
 import { Sale, SaleItem } from "../model/sales";
+import { Role, SecurityScheme } from "../security/authorization";
 import { CreateSaleParams, CreateSaleItemParams } from "./salesDtos";
-import { BadRequestError, AuthenticationError, AuthorizationError, ServerError, NotFoundError } from "../common/interfaces";
+import { SalesService } from "./salesService";
 
-/**
- * Information about a point of sale.
- * 
- * @example {
- *  "locationId": "location-1",
- *  "address": "Location 1"
- * }
- */
-export interface Location {
-    locationId: string,
-    address: string,
-}
-
-export interface User {
-    userId: string,
-    email: string,
-    name: string,
-    role: Role
-}
-
-export enum Tag {
-    PRODUCT = "Products",
-    LOCATION = "Locations",
-    SALE = "Sales",
-    USER = "Users"
-}
-
-enum Role {
-    "ADMIN" = "admin",
-    "SELLER" = "seller",
-    "NONE" = "none",
-}
-
-const ROLE_VALUE: object = {
-    [Role.ADMIN]: 0b11,
-    [Role.SELLER]: 0b01,
-    [Role.NONE]: 0b00
-};
-
-
+const TAG_SALES = "Sales";
 const salesService = new SalesService();
 
 @Route("sales")
 export class SaleController extends Controller {
     /**
-     * When a parameter is present, only sales with an **exact** match will be returned.
+     * If a search criteria is applied, only sales with an **exact** match will be returned.
      * 
      * @summary Get a list of past sales. You may specify search parameters.
      * 
-     * @param limit Limit the number of sales that are returned.
+     * @param limit Limit the number of sales returned.
      * @isInt limit Must be an integer >= 1.
      * @minimum limit 1 minimum 1.
      * @example limit 10
      * 
-     * @param page Used for pagination. When limit is present,
+     * @param page Used for pagination. When limit is used,
      * chunks of sales will be skipped (e.g. if page=5 and limit=10, the first 50 sales will be skipped).
      * @isInt page Must be an integer >= 0.
      * @minimum page 0 minimum 0.
@@ -82,9 +44,10 @@ export class SaleController extends Controller {
      * @example locationId "location-1"
      */
     @Get()
-    @Tags(Tag.SALE)
+    @Tags(TAG_SALES)
+    @Security(SecurityScheme.JWT, [Role.ADMIN])
     @SuccessResponse("200", "Successfully returned a list of sales.")
-    @Response<BadRequestError>("400", "Bad Request", {
+    @Response<BadRequestErrorResponse>("400", "Bad Request", {
         status: 400,
         error: {
             fields: {
@@ -95,9 +58,9 @@ export class SaleController extends Controller {
             }
         }
     })
-    @Response<AuthenticationError>("401", "Unauthorized")
-    @Response<AuthorizationError>("403", "Forbidden")
-    @Response<ServerError>("500", "Internal Server Error")
+    @Response<AuthenticationErrorResponse>("401", "Unauthorized")
+    @Response<AuthorizationErrorResponse>("403", "Forbidden")
+    @Response<ServerErrorResponse>("500", "Internal Server Error")
     public async getSales(
         @Query() limit?: number,
         @Query() page?: number,
@@ -117,12 +80,13 @@ export class SaleController extends Controller {
     }
 
     /** 
-     * @summary Create a new sale
+     * @summary Create a new sale.
      */
     @Post()
-    @Tags(Tag.SALE)
+    @Tags(TAG_SALES)
+    @Security(SecurityScheme.JWT, [Role.SELLER])
     @SuccessResponse("201", "Successfully created a new sale.")
-    @Response<BadRequestError>("400", "Bad Request", {
+    @Response<BadRequestErrorResponse>("400", "Bad Request", {
         status: 400,
         error: {
             fields: {
@@ -133,12 +97,12 @@ export class SaleController extends Controller {
             }
         }
     })
-    @Response<AuthenticationError>("401", "Unauthorized")
-    @Response<AuthorizationError>("403", "Forbidden")
-    @Response<ServerError>("500", "Internal Server Error")
-    public async postSale(
+    @Response<AuthenticationErrorResponse>("401", "Unauthorized")
+    @Response<AuthorizationErrorResponse>("403", "Forbidden")
+    @Response<ServerErrorResponse>("500", "Internal Server Error")
+    public async postSales(
         @Body() body: CreateSaleParams,
-        @Res() notFoundResponse: TsoaResponse<404, NotFoundError>
+        @Res() notFoundResponse: TsoaResponse<404, NotFoundErrorResponse>
     ): Promise<Sale> {
         const result: any = salesService.createSale(body);
         
