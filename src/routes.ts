@@ -27,7 +27,7 @@ const models: TsoaRoute.Models = {
             "locationId": {"dataType":"string","required":true},
             "address": {"dataType":"string","required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "SearchLocationsResult": {
@@ -36,7 +36,7 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[200],"required":true},
             "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"locations":{"dataType":"array","array":{"dataType":"refObject","ref":"Location"},"required":true}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ServerErrorResponse": {
@@ -45,7 +45,7 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[500],"required":true},
             "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"string"},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "CreateLocationResult": {
@@ -54,7 +54,7 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[201],"required":true},
             "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"location":{"ref":"Location","required":true}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "FieldErrors": {
@@ -70,7 +70,7 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[400],"required":true},
             "error": {"dataType":"nestedObjectLiteral","nestedProperties":{"fields":{"ref":"FieldErrors"},"message":{"dataType":"string"}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "AuthenticationErrorResponse": {
@@ -79,7 +79,7 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[401],"required":true},
             "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"string"},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "AuthorizationErrorResponse": {
@@ -88,7 +88,7 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[403],"required":true},
             "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"string"},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "CreateLocationParams": {
@@ -96,7 +96,7 @@ const models: TsoaRoute.Models = {
         "properties": {
             "address": {"dataType":"string","required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ProductStatus": {
@@ -117,7 +117,7 @@ const models: TsoaRoute.Models = {
             "category": {"dataType":"string","required":true},
             "stock": {"dataType":"array","array":{"dataType":"string"},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "GetProductsResult": {
@@ -126,7 +126,7 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[200],"required":true},
             "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"products":{"dataType":"array","array":{"dataType":"refObject","ref":"ProductPublicInfo"},"required":true}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ProductCategory": {
@@ -140,7 +140,7 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[200],"required":true},
             "data": {"ref":"ProductPublicInfo","required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "PatchProductResult": {
@@ -148,7 +148,7 @@ const models: TsoaRoute.Models = {
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "UpdateProductParams": {
@@ -159,7 +159,7 @@ const models: TsoaRoute.Models = {
             "price": {"dataType":"double"},
             "active": {"dataType":"boolean"},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "SaleItem": {
@@ -170,7 +170,7 @@ const models: TsoaRoute.Models = {
             "quantity": {"dataType":"integer","required":true,"validators":{"minimum":{"value":1}}},
             "price": {"dataType":"double","required":true,"validators":{"minimum":{"value":0}}},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "Sale": {
@@ -182,7 +182,7 @@ const models: TsoaRoute.Models = {
             "totalPrice": {"dataType":"double","required":true},
             "list": {"dataType":"array","array":{"dataType":"refObject","ref":"SaleItem"},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "SearchSalesResult": {
@@ -191,7 +191,7 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[200],"required":true},
             "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"sales":{"dataType":"array","array":{"dataType":"refObject","ref":"Sale"},"required":true}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "CreateSaleItemParams": {
@@ -201,7 +201,7 @@ const models: TsoaRoute.Models = {
             "locationId": {"dataType":"string","required":true},
             "quantity": {"dataType":"integer","required":true,"validators":{"isInt":{"errorMsg":"Must be an integer >= 1."},"minimum":{"errorMsg":"Minimum 1","value":1}}},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "CreateSaleParams": {
@@ -210,7 +210,7 @@ const models: TsoaRoute.Models = {
             "sellerId": {"dataType":"string","required":true},
             "list": {"dataType":"array","array":{"dataType":"refObject","ref":"CreateSaleItemParams"},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "NotFoundErrorResponse": {
@@ -219,15 +219,35 @@ const models: TsoaRoute.Models = {
             "status": {"dataType":"enum","enums":[404],"required":true},
             "error": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"string"},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "LoginResult": {
+        "dataType": "refObject",
+        "properties": {
+            "status": {"dataType":"enum","enums":[200],"required":true},
+            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"userId":{"dataType":"string","required":true}},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Username": {
+        "dataType": "refAlias",
+        "type": {"dataType":"string","validators":{"pattern":{"value":"^[A-Za-z][\\w]{4,19}$"}}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Password": {
+        "dataType": "refAlias",
+        "type": {"dataType":"string","validators":{"pattern":{"value":"^[\\w]{8,19}$"}}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "LoginParams": {
         "dataType": "refObject",
         "properties": {
-            "email": {"dataType":"string","required":true},
+            "username": {"ref":"Username","required":true},
+            "password": {"ref":"Password","required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "Role": {
@@ -235,24 +255,26 @@ const models: TsoaRoute.Models = {
         "enums": ["admin","seller","basic"],
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "User": {
+    "UserFullInfo": {
         "dataType": "refObject",
         "properties": {
             "userId": {"dataType":"string","required":true},
-            "email": {"dataType":"string","required":true},
+            "username": {"ref":"Username","required":true},
             "name": {"dataType":"string","required":true},
             "role": {"ref":"Role","required":true},
+            "createdAt": {"dataType":"datetime","required":true},
+            "updatedAt": {"dataType":"datetime","required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "GetUsersResult": {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"users":{"dataType":"array","array":{"dataType":"refObject","ref":"User"},"required":true}},"required":true},
+            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"users":{"dataType":"array","array":{"dataType":"refObject","ref":"UserFullInfo"},"required":true}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "Email": {
@@ -264,9 +286,9 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[201],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"role":{"ref":"Role","required":true},"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}},"required":true}},"required":true},
+            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"role":{"ref":"Role","required":true},"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}}}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "CreateUserParams": {
@@ -275,25 +297,34 @@ const models: TsoaRoute.Models = {
             "name": {"dataType":"string","required":true},
             "email": {"ref":"Email","required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UserProfile": {
+        "dataType": "refObject",
+        "properties": {
+            "userId": {"dataType":"string","required":true},
+            "name": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "GetUserProfileResult": {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}},"required":true}},"required":true},
+            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"ref":"UserProfile","required":true}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "PatchUserProfileResult": {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}},"required":true}},"required":true},
+            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}}}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "UpdateUserProfileParams": {
@@ -301,25 +332,25 @@ const models: TsoaRoute.Models = {
         "properties": {
             "name": {"dataType":"string","required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "GetUserFullInfoResult": {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"role":{"ref":"Role","required":true},"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}},"required":true}},"required":true},
+            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"ref":"UserFullInfo","required":true}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "PatchUserFullInfoResult": {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"role":{"ref":"Role","required":true},"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}},"required":true}},"required":true},
+            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"role":{"ref":"Role","required":true},"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}}}},"required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "UpdateUserFullInfoParams": {
@@ -328,7 +359,7 @@ const models: TsoaRoute.Models = {
             "name": {"dataType":"string","required":true},
             "role": {"ref":"Role","required":true},
         },
-        "additionalProperties": true,
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 };
@@ -540,6 +571,7 @@ export function RegisterRoutes(app: express.Router) {
             function AuthController_login(request: any, response: any, next: any) {
             const args = {
                     body: {"in":"body","name":"body","required":true,"ref":"LoginParams"},
+                    notFoundResponse: {"in":"res","name":"404","required":true,"ref":"NotFoundErrorResponse"},
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -552,7 +584,7 @@ export function RegisterRoutes(app: express.Router) {
 
 
               const promise = controller.login.apply(controller, validatedArgs as any);
-              promiseHandler(controller, promise, response, undefined, next);
+              promiseHandler(controller, promise, response, 200, next);
             } catch (err) {
                 return next(err);
             }
@@ -576,7 +608,7 @@ export function RegisterRoutes(app: express.Router) {
 
 
               const promise = controller.logout.apply(controller, validatedArgs as any);
-              promiseHandler(controller, promise, response, undefined, next);
+              promiseHandler(controller, promise, response, 200, next);
             } catch (err) {
                 return next(err);
             }
@@ -698,6 +730,7 @@ export function RegisterRoutes(app: express.Router) {
             function UsersController_getUserFullInfo(request: any, response: any, next: any) {
             const args = {
                     userId: {"in":"path","name":"userId","required":true,"dataType":"string"},
+                    notFoundResponse: {"in":"res","name":"404","required":true,"ref":"NotFoundErrorResponse"},
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -865,22 +898,22 @@ export function RegisterRoutes(app: express.Router) {
                 case 'request':
                     return request;
                 case 'query':
-                    return validationService.ValidateParam(args[key], request.query[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
+                    return validationService.ValidateParam(args[key], request.query[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"silently-remove-extras"});
                 case 'path':
-                    return validationService.ValidateParam(args[key], request.params[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
+                    return validationService.ValidateParam(args[key], request.params[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"silently-remove-extras"});
                 case 'header':
-                    return validationService.ValidateParam(args[key], request.header(name), name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
+                    return validationService.ValidateParam(args[key], request.header(name), name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"silently-remove-extras"});
                 case 'body':
-                    return validationService.ValidateParam(args[key], request.body, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
+                    return validationService.ValidateParam(args[key], request.body, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"silently-remove-extras"});
                 case 'body-prop':
-                    return validationService.ValidateParam(args[key], request.body[name], name, fieldErrors, 'body.', {"noImplicitAdditionalProperties":"ignore"});
+                    return validationService.ValidateParam(args[key], request.body[name], name, fieldErrors, 'body.', {"noImplicitAdditionalProperties":"silently-remove-extras"});
                 case 'formData':
                     if (args[key].dataType === 'file') {
-                        return validationService.ValidateParam(args[key], request.file, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
+                        return validationService.ValidateParam(args[key], request.file, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"silently-remove-extras"});
                     } else if (args[key].dataType === 'array' && args[key].array.dataType === 'file') {
-                        return validationService.ValidateParam(args[key], request.files, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
+                        return validationService.ValidateParam(args[key], request.files, name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"silently-remove-extras"});
                     } else {
-                        return validationService.ValidateParam(args[key], request.body[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"ignore"});
+                        return validationService.ValidateParam(args[key], request.body[name], name, fieldErrors, undefined, {"noImplicitAdditionalProperties":"silently-remove-extras"});
                     }
                 case 'res':
                     return responder(response);

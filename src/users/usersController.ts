@@ -1,61 +1,11 @@
 
 import { Body, Controller, Get, Patch, Path, Post, Query, Request, Res, Response, Route, Security, SuccessResponse, Tags, TsoaResponse } from "tsoa";
 import { BadRequestErrorResponse, NotFoundErrorResponse } from "../common/interfaces";
+import { Username } from "../common/model";
 import { AuthRequest, hasRolePrivileges, Role, SecurityScheme } from "../security/authorization";
-
-/**
- * Information about a user.
- * 
- * @example {
- *  "userId": "user-1",
- *  "email": "alice@mail.com",
- *  "name": "Alice",
- *  "role": "admin"
- * }
- */
-export interface User {
-    userId: string,
-    email: string,
-    name: string,
-    role: Role
-}
+import { UserService } from "./usersService";
 
 const TAG_USERS = "Users";
-
-class UsersService {
-    async searchUsers() {
-        return [];
-    }
-
-    async createUser(params: CreateUserParams) {
-        return {
-            userId: "user-2",
-            name: params.name,
-            email: params.email,
-            role: Role.BASIC
-        };
-    }
-
-    async findUserWithId(userId: string) {
-        return {
-            userId: userId,
-            name: "Alice",
-            email: "alice@mail.com",
-            role: Role.ADMIN
-        };
-    }
-
-    async updateUserWithId(userId: string, params: UpdateUserProfileParams) {
-        return {
-            userId: userId,
-            name: "Alice",
-            email: "alice@mail.com",
-            role: Role.ADMIN
-        };
-    }
-}
-
-const usersService = new UsersService();
 
 @Route("users")
 export class UsersController extends Controller {
@@ -84,14 +34,16 @@ export class UsersController extends Controller {
     public async getUsers(
         @Query() role?: Role,
     ): Promise<GetUsersResult> {
-        const users = await usersService.searchUsers();
+        const where = (role == undefined) ? {} : {role: role};
+        const attributes = ["userId", "username", "role", "createdAt", "updatedAt"];
+        const userList: UserFullInfo[] = await UserService.findAll({ where, attributes });
+
         return {
             status: 200,
             data: {
-                users: users
+                users: userList
             }
         };
-        
     }
 
     /**
@@ -104,11 +56,11 @@ export class UsersController extends Controller {
     public async createUser(
         @Body() body: CreateUserParams
     ): Promise<PostUsersResult> {
-        const user = await usersService.createUser(body);
+        //const user = await usersService.createUser(body);
         return {
             status: 201,
             data: {
-                user: user
+                user: undefined
             }
         }
     }
@@ -134,12 +86,17 @@ export class UsersController extends Controller {
             return notFoundResponse(404, {status: 404, error: {}});
         }
 
-        const user: any = await usersService.findUserWithId(userId);
+        const attributes = ["userId", "name"];
+        const profile: UserProfile | null = await UserService.findByPk(userId, {attributes});
+
+        if (profile == null) {
+            return notFoundResponse(404, {status: 404, error: {}});
+        }
 
         return {
             status: 200,
             data: {
-                user: user
+                user: profile
             }
         }
     }
@@ -178,13 +135,13 @@ export class UsersController extends Controller {
             return notFoundResponse(404, {status: 404, error: {}});
         }
 
-        const user = await usersService.updateUserWithId(userId, body);
-        console.log(body);
+        //const user = await usersService.updateUserWithId(userId, body);
+        //console.log(body);
 
         return {
             status: 200,
             data: {
-                user: user
+                user: undefined
             }
         }
     }
@@ -198,9 +155,16 @@ export class UsersController extends Controller {
     @Security(SecurityScheme.JWT, [Role.ADMIN])
     @SuccessResponse(200, "Successfully returned the user's information.")
     public async getUserFullInfo(
-        @Path() userId: string
+        @Path() userId: string,
+        @Res() notFoundResponse: TsoaResponse<404, NotFoundErrorResponse>
     ): Promise<GetUserFullInfoResult> {
-        const user: any = await usersService.findUserWithId(userId);
+        const attributes = ["userId", "username", "role", "createdAt", "updatedAt"];
+        const user: UserFullInfo | null = await UserService.findByPk(userId, {attributes});
+
+        if (user == null) {
+            return notFoundResponse(404, {status: 404, error: {}});
+        }
+
         return {
             status: 200,
             data: {
@@ -234,24 +198,70 @@ export class UsersController extends Controller {
         @Path() userId: string,
         @Body() body: UpdateUserFullInfoParams
     ): Promise<PatchUserFullInfoResult> {
-        const user = await usersService.updateUserWithId(userId, body);
-        console.log(body);
-
+        //const user = await usersService.updateUserWithId(userId, body);
+        //console.log(body);
+        
         return {
             status: 200,
             data: {
-                user: user
+                user: undefined
             }
         }
     }
 
 
 }
+/**
+ * @example {
+        "userId": "d3f73171-304e-48cd-a93f-0602cd2322ed",
+        "username": "user000",
+        "name": "Alice",
+        "role": "admin",
+        "createdAt": "2022-08-12T23:55:57.972Z",
+        "updatedAt": "2022-08-12T23:55:57.972Z"
+    }
+ */
+interface UserFullInfo {
+    userId: string;
+    username: Username;
+    name: string;
+    role: Role;
+    createdAt: Date;
+    updatedAt: Date;
+}
 
+/**
+ * @example {
+      "userId": "09d6e02e-67c0-418f-bd0d-19926f554a71",
+      "name": "Alice"
+    }
+ */
+interface UserProfile {
+    userId: string;
+    name: string;
+}
+
+/** JSON response format for the "GET /users" endpoint. */
 interface GetUsersResult {
     status: 200,
     data: {
-        users: User[]
+        users: UserFullInfo[]
+    }
+}
+
+/** JSON response format for the "GET /users/{userId}/fullinfo" endpoint. */
+interface GetUserFullInfoResult {
+    status: 200,
+    data: {
+        user: UserFullInfo
+    }
+}
+
+/** JSON response format for the "GET /users/{userId}" endpoint. */
+    interface GetUserProfileResult {
+    status: 200,
+    data: {
+        user: UserProfile
     }
 }
 
@@ -310,36 +320,11 @@ interface UpdateUserFullInfoParams {
 interface PostUsersResult {
     status: 201,
     data: {
-        user: {
+        user?: {
             userId: string,
             name: string,
             email: Email,
             role: Role
-        }
-    }
-}
-
-/**
- * JSON response format for the "GET /users/{userId}" endpoint.
- * 
- * @example {
- *  "status": 200,
- *  "data": {
- *      "user": {
- *          "userId": "user-1",
- *          "name": "Alice",
- *          "email": "alice@mail.com"
- *      }
- *  }
- * }
- */
- interface GetUserProfileResult {
-    status: 200,
-    data: {
-        user: {
-            userId: string,
-            name: string,
-            email: Email
         }
     }
 }
@@ -361,37 +346,11 @@ interface PostUsersResult {
  interface PatchUserProfileResult {
     status: 200,
     data: {
-        user: {
+        // Refactor
+        user?: {
             userId: string,
             name: string,
             email: Email
-        }
-    }
-}
-
-/**
- * JSON response format for the "GET /users/{userId}/fullinfo" endpoint.
- * 
- * @example {
- *  "status": 200,
- *  "data": {
- *      "user": {
- *          "userId": "user-1",
- *          "name": "Alice",
- *          "email": "alice@mail.com",
- *          "role": "admin"
- *      }
- *  }
- * }
- */
-interface GetUserFullInfoResult {
-    status: 200,
-    data: {
-        user: {
-            userId: string,
-            name: string,
-            email: Email,
-            role: Role
         }
     }
 }
@@ -414,7 +373,8 @@ interface GetUserFullInfoResult {
  interface PatchUserFullInfoResult {
     status: 200,
     data: {
-        user: {
+        // undefined
+        user?: {
             userId: string,
             name: string,
             email: Email,

@@ -21,7 +21,7 @@
 					"address"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"locationId": "location-1",
 					"address": "Location 1"
@@ -57,7 +57,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"status": 200,
 					"data": {
@@ -97,7 +97,7 @@
 					"error"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"status": 500,
 					"error": {}
@@ -130,7 +130,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"status": 201,
 					"data": {
@@ -184,7 +184,7 @@
 					"error"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"status": 400,
 					"error": {}
@@ -213,7 +213,7 @@
 					"error"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"status": 401,
 					"error": {}
@@ -242,7 +242,7 @@
 					"error"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"status": 403,
 					"error": {}
@@ -259,7 +259,7 @@
 					"address"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"address": "Location 1"
 				}
@@ -322,7 +322,7 @@
 					"stock"
 				],
 				"type": "object",
-				"additionalProperties": true
+				"additionalProperties": false
 			},
 			"GetProductsResult": {
 				"properties": {
@@ -353,7 +353,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true
+				"additionalProperties": false
 			},
 			"ProductCategory": {
 				"enum": [
@@ -382,7 +382,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true
+				"additionalProperties": false
 			},
 			"PatchProductResult": {
 				"properties": {
@@ -398,7 +398,7 @@
 					"status"
 				],
 				"type": "object",
-				"additionalProperties": true
+				"additionalProperties": false
 			},
 			"UpdateProductParams": {
 				"properties": {
@@ -417,7 +417,7 @@
 					}
 				},
 				"type": "object",
-				"additionalProperties": true
+				"additionalProperties": false
 			},
 			"SaleItem": {
 				"description": "Information about a sold product.",
@@ -446,7 +446,7 @@
 					"price"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"productId": "product-1",
 					"locationId": "location-1",
@@ -485,7 +485,7 @@
 					"list"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"saleId": "sale-1",
 					"date": "2022-12-31T00:00:00Z",
@@ -530,7 +530,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true
+				"additionalProperties": false
 			},
 			"CreateSaleItemParams": {
 				"properties": {
@@ -552,7 +552,7 @@
 					"quantity"
 				],
 				"type": "object",
-				"additionalProperties": true
+				"additionalProperties": false
 			},
 			"CreateSaleParams": {
 				"description": "Information necessary to create a new sale.",
@@ -572,7 +572,7 @@
 					"list"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"sellerId": "user-1",
 					"list": [
@@ -607,23 +607,71 @@
 					"error"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"status": 404,
 					"error": {}
 				}
 			},
-			"LoginParams": {
+			"LoginResult": {
 				"properties": {
-					"email": {
-						"type": "string"
+					"status": {
+						"type": "number",
+						"enum": [
+							200
+						],
+						"nullable": false
+					},
+					"data": {
+						"properties": {
+							"userId": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"userId"
+						],
+						"type": "object"
 					}
 				},
 				"required": [
-					"email"
+					"status",
+					"data"
 				],
 				"type": "object",
-				"additionalProperties": true
+				"additionalProperties": false,
+				"example": {
+					"status": 200,
+					"data": {
+						"userId": "424c9011-81e1-4ad7-818f-802f9a9bc9ce"
+					}
+				}
+			},
+			"Username": {
+				"type": "string",
+				"example": "user000",
+				"pattern": "^[A-Za-z][\\w]{4,19}$"
+			},
+			"Password": {
+				"type": "string",
+				"example": "password",
+				"pattern": "^[\\w]{8,19}$"
+			},
+			"LoginParams": {
+				"properties": {
+					"username": {
+						"$ref": "#/components/schemas/Username"
+					},
+					"password": {
+						"$ref": "#/components/schemas/Password"
+					}
+				},
+				"required": [
+					"username",
+					"password"
+				],
+				"type": "object",
+				"additionalProperties": false
 			},
 			"Role": {
 				"enum": [
@@ -633,38 +681,50 @@
 				],
 				"type": "string"
 			},
-			"User": {
-				"description": "Information about a user.",
+			"UserFullInfo": {
 				"properties": {
 					"userId": {
 						"type": "string"
 					},
-					"email": {
-						"type": "string"
+					"username": {
+						"$ref": "#/components/schemas/Username"
 					},
 					"name": {
 						"type": "string"
 					},
 					"role": {
 						"$ref": "#/components/schemas/Role"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
 					}
 				},
 				"required": [
 					"userId",
-					"email",
+					"username",
 					"name",
-					"role"
+					"role",
+					"createdAt",
+					"updatedAt"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
-					"userId": "user-1",
-					"email": "alice@mail.com",
+					"userId": "d3f73171-304e-48cd-a93f-0602cd2322ed",
+					"username": "user000",
 					"name": "Alice",
-					"role": "admin"
+					"role": "admin",
+					"createdAt": "2022-08-12T23:55:57.972Z",
+					"updatedAt": "2022-08-12T23:55:57.972Z"
 				}
 			},
 			"GetUsersResult": {
+				"description": "JSON response format for the \"GET /users\" endpoint.",
 				"properties": {
 					"status": {
 						"type": "number",
@@ -677,7 +737,7 @@
 						"properties": {
 							"users": {
 								"items": {
-									"$ref": "#/components/schemas/User"
+									"$ref": "#/components/schemas/UserFullInfo"
 								},
 								"type": "array"
 							}
@@ -693,7 +753,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true
+				"additionalProperties": false
 			},
 			"Email": {
 				"type": "string",
@@ -735,9 +795,6 @@
 								"type": "object"
 							}
 						},
-						"required": [
-							"user"
-						],
 						"type": "object"
 					}
 				},
@@ -746,7 +803,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"status": 201,
 					"data": {
@@ -774,10 +831,30 @@
 					"email"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"name": "Alice",
 					"email": "alice@mail.com"
+				}
+			},
+			"UserProfile": {
+				"properties": {
+					"userId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"userId",
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false,
+				"example": {
+					"userId": "09d6e02e-67c0-418f-bd0d-19926f554a71",
+					"name": "Alice"
 				}
 			},
 			"GetUserProfileResult": {
@@ -793,23 +870,7 @@
 					"data": {
 						"properties": {
 							"user": {
-								"properties": {
-									"email": {
-										"$ref": "#/components/schemas/Email"
-									},
-									"name": {
-										"type": "string"
-									},
-									"userId": {
-										"type": "string"
-									}
-								},
-								"required": [
-									"email",
-									"name",
-									"userId"
-								],
-								"type": "object"
+								"$ref": "#/components/schemas/UserProfile"
 							}
 						},
 						"required": [
@@ -823,17 +884,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true,
-				"example": {
-					"status": 200,
-					"data": {
-						"user": {
-							"userId": "user-1",
-							"name": "Alice",
-							"email": "alice@mail.com"
-						}
-					}
-				}
+				"additionalProperties": false
 			},
 			"PatchUserProfileResult": {
 				"description": "JSON response format for the \"PATCH /users/{userId}\" endpoint.",
@@ -867,9 +918,6 @@
 								"type": "object"
 							}
 						},
-						"required": [
-							"user"
-						],
 						"type": "object"
 					}
 				},
@@ -878,7 +926,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"status": 200,
 					"data": {
@@ -901,7 +949,7 @@
 					"name"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"name": "Alice"
 				}
@@ -919,27 +967,7 @@
 					"data": {
 						"properties": {
 							"user": {
-								"properties": {
-									"role": {
-										"$ref": "#/components/schemas/Role"
-									},
-									"email": {
-										"$ref": "#/components/schemas/Email"
-									},
-									"name": {
-										"type": "string"
-									},
-									"userId": {
-										"type": "string"
-									}
-								},
-								"required": [
-									"role",
-									"email",
-									"name",
-									"userId"
-								],
-								"type": "object"
+								"$ref": "#/components/schemas/UserFullInfo"
 							}
 						},
 						"required": [
@@ -953,18 +981,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true,
-				"example": {
-					"status": 200,
-					"data": {
-						"user": {
-							"userId": "user-1",
-							"name": "Alice",
-							"email": "alice@mail.com",
-							"role": "admin"
-						}
-					}
-				}
+				"additionalProperties": false
 			},
 			"PatchUserFullInfoResult": {
 				"description": "JSON response format for the \"PATCH /users/{userId}/fullinfo\" endpoint.",
@@ -1002,9 +1019,6 @@
 								"type": "object"
 							}
 						},
-						"required": [
-							"user"
-						],
 						"type": "object"
 					}
 				},
@@ -1013,7 +1027,7 @@
 					"data"
 				],
 				"type": "object",
-				"additionalProperties": true,
+				"additionalProperties": false,
 				"example": {
 					"status": 200,
 					"data": {
@@ -1041,7 +1055,7 @@
 					"role"
 				],
 				"type": "object",
-				"additionalProperties": true
+				"additionalProperties": false
 			}
 		},
 		"securitySchemes": {
@@ -1634,10 +1648,29 @@
 			"post": {
 				"operationId": "Login",
 				"responses": {
-					"204": {
-						"description": "No content"
+					"200": {
+						"description": "Login successfull.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/LoginResult"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotFoundErrorResponse"
+								}
+							}
+						}
 					}
 				},
+				"description": "Login with an user account to access protected resources.\r\nA JSON Web Token will be set as a cookie for further authentication purposes.",
+				"summary": "Login an user account.",
 				"tags": [
 					"Auth"
 				],
@@ -1660,17 +1693,10 @@
 				"operationId": "Logout",
 				"responses": {
 					"200": {
-						"description": "Ok",
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {},
-									"type": "object"
-								}
-							}
-						}
+						"description": "Logout successfull."
 					}
 				},
+				"summary": "Logout the current user account.",
 				"tags": [
 					"Auth"
 				],
@@ -1927,6 +1953,16 @@
 							"application/json": {
 								"schema": {
 									"$ref": "#/components/schemas/GetUserFullInfoResult"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotFoundErrorResponse"
 								}
 							}
 						}

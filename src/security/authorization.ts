@@ -1,8 +1,10 @@
 import { Request } from "express";
 import * as jwt from "jsonwebtoken";
 import { AuthenticationError, AuthorizationError } from "../common/errors";
+import { security as config } from "../config.json";
 
-const {secret, cookieName} = require("../config.json").security;
+const secret = process.env.SECRET || config.secret;
+const cookieName = process.env.COOKIE_NAME || config.cookieName;
 
 /* 
     A given role is mapped to a binary value.
