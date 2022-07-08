@@ -16,24 +16,28 @@ export function registerObserver(observer: (seq: Sequelize) => Promise<void>) {
 /**
  * Initializes the DB connection.
  */
-export async function initDatabase() {
+export async function initDatabase(): Promise<void> {
     console.log("Initializing DB connection...");
     const sequelize = await getSequelizeInstace();
     
-    await sequelize.authenticate();
+    try {
+        await sequelize.authenticate();
+    } catch (error) {
+        return Promise.reject("Connection failed. Verify connection info ('DATABASE_URL' or 'config.json').");
+    }
+    
     console.log("Authenticated.");
 
     await Promise.all(observers.map(func => func(sequelize)));
     await sequelize.sync();
-    console.log("Connected successfully!");
 }
 
 async function getSequelizeInstace(): Promise<Sequelize> {
     const URL = process.env.DATABASE_URL;
-
+    
     if (URL != null) {
         console.log("Using environment variable 'DATABASE_URL'.");
-        return new Sequelize(URL);
+        return new Sequelize(URL, {dialectOptions: options.dialectOptions});
     }
 
     if (options.dialect) {
@@ -41,6 +45,8 @@ async function getSequelizeInstace(): Promise<Sequelize> {
         return new Sequelize(options as any);
     }
 
-    console.log("Using sqlite in-memory DB");
-    return new Sequelize("sqlite::memory:")
+    return Promise.reject(
+        "No connection configuration. "+
+        "Set the 'DATABASE_URL' enviroment variable or use the 'config.json' file."
+    )
 }

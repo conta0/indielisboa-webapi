@@ -12,6 +12,11 @@ export type Username = string;
  */
 export type Password = string;
 
+/**
+ * @format uuid
+ */
+export type UUID = string
+
 export const USERNAME_PATTERN = /^[A-Za-z][\w]{4,19}$/i
 export const PASSWORD_PATTERN = /^[\w]{8,19}$/i
 
@@ -27,7 +32,7 @@ export interface Location {
     address: string
 }
 
-export interface User {
+export interface UserModel {
     userId: string;
     username: string;
     password: string;

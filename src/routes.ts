@@ -222,11 +222,16 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UUID": {
+        "dataType": "refAlias",
+        "type": {"dataType":"string","validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "LoginResult": {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"userId":{"dataType":"string","required":true}},"required":true},
+            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"userId":{"ref":"UUID","required":true}},"required":true},
         },
         "additionalProperties": false,
     },
@@ -250,17 +255,21 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "USERS_NAME": {
+        "dataType": "refAlias",
+        "type": {"dataType":"string","validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "Role": {
         "dataType": "refEnum",
-        "enums": ["admin","seller","basic"],
+        "enums": ["basic","seller","manager","admin"],
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "UserFullInfo": {
         "dataType": "refObject",
         "properties": {
-            "userId": {"dataType":"string","required":true},
-            "username": {"ref":"Username","required":true},
-            "name": {"dataType":"string","required":true},
+            "userId": {"ref":"UUID","required":true},
+            "name": {"ref":"USERS_NAME","required":true},
             "role": {"ref":"Role","required":true},
             "createdAt": {"dataType":"datetime","required":true},
             "updatedAt": {"dataType":"datetime","required":true},
@@ -272,30 +281,7 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"users":{"dataType":"array","array":{"dataType":"refObject","ref":"UserFullInfo"},"required":true}},"required":true},
-        },
-        "additionalProperties": false,
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "Email": {
-        "dataType": "refAlias",
-        "type": {"dataType":"string","validators":{}},
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "PostUsersResult": {
-        "dataType": "refObject",
-        "properties": {
-            "status": {"dataType":"enum","enums":[201],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"role":{"ref":"Role","required":true},"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}}}},"required":true},
-        },
-        "additionalProperties": false,
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "CreateUserParams": {
-        "dataType": "refObject",
-        "properties": {
-            "name": {"dataType":"string","required":true},
-            "email": {"ref":"Email","required":true},
+            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"list":{"dataType":"array","array":{"dataType":"refObject","ref":"UserFullInfo"},"required":true}},"required":true},
         },
         "additionalProperties": false,
     },
@@ -303,8 +289,36 @@ const models: TsoaRoute.Models = {
     "UserProfile": {
         "dataType": "refObject",
         "properties": {
-            "userId": {"dataType":"string","required":true},
-            "name": {"dataType":"string","required":true},
+            "userId": {"ref":"UUID","required":true},
+            "name": {"ref":"USERS_NAME","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GetSellersResult": {
+        "dataType": "refObject",
+        "properties": {
+            "status": {"dataType":"enum","enums":[200],"required":true},
+            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"list":{"dataType":"array","array":{"dataType":"refObject","ref":"UserProfile"},"required":true}},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "PostUsersResult": {
+        "dataType": "refObject",
+        "properties": {
+            "status": {"dataType":"enum","enums":[201],"required":true},
+            "data": {"ref":"UserProfile","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "CreateUserParams": {
+        "dataType": "refObject",
+        "properties": {
+            "username": {"ref":"Username","required":true},
+            "password": {"ref":"Password","required":true},
+            "name": {"ref":"USERS_NAME","required":true},
         },
         "additionalProperties": false,
     },
@@ -313,7 +327,7 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"ref":"UserProfile","required":true}},"required":true},
+            "data": {"ref":"UserProfile","required":true},
         },
         "additionalProperties": false,
     },
@@ -322,7 +336,7 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}}}},"required":true},
+            "data": {"ref":"UserProfile"},
         },
         "additionalProperties": false,
     },
@@ -330,7 +344,7 @@ const models: TsoaRoute.Models = {
     "UpdateUserProfileParams": {
         "dataType": "refObject",
         "properties": {
-            "name": {"dataType":"string","required":true},
+            "name": {"ref":"USERS_NAME","required":true},
         },
         "additionalProperties": false,
     },
@@ -339,7 +353,7 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"ref":"UserFullInfo","required":true}},"required":true},
+            "data": {"ref":"UserFullInfo","required":true},
         },
         "additionalProperties": false,
     },
@@ -348,7 +362,7 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "status": {"dataType":"enum","enums":[200],"required":true},
-            "data": {"dataType":"nestedObjectLiteral","nestedProperties":{"user":{"dataType":"nestedObjectLiteral","nestedProperties":{"role":{"ref":"Role","required":true},"email":{"ref":"Email","required":true},"name":{"dataType":"string","required":true},"userId":{"dataType":"string","required":true}}}},"required":true},
+            "data": {"ref":"UserFullInfo"},
         },
         "additionalProperties": false,
     },
@@ -356,7 +370,7 @@ const models: TsoaRoute.Models = {
     "UpdateUserFullInfoParams": {
         "dataType": "refObject",
         "properties": {
-            "name": {"dataType":"string","required":true},
+            "name": {"ref":"USERS_NAME","required":true},
             "role": {"ref":"Role","required":true},
         },
         "additionalProperties": false,
@@ -373,7 +387,7 @@ export function RegisterRoutes(app: express.Router) {
     //      Please look into the "controllerPathGlobs" config option described in the readme: https://github.com/lukeautry/tsoa
     // ###########################################################################################################
         app.get('/locations',
-            authenticateMiddleware([{"jwt":["admin"]}]),
+            authenticateMiddleware([{"jwt":["manager"]}]),
             ...(fetchMiddlewares<RequestHandler>(LocationsController)),
             ...(fetchMiddlewares<RequestHandler>(LocationsController.prototype.getLocations)),
 
@@ -398,7 +412,7 @@ export function RegisterRoutes(app: express.Router) {
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         app.post('/locations',
-            authenticateMiddleware([{"jwt":["admin"]}]),
+            authenticateMiddleware([{"jwt":["manager"]}]),
             ...(fetchMiddlewares<RequestHandler>(LocationsController)),
             ...(fetchMiddlewares<RequestHandler>(LocationsController.prototype.postSale)),
 
@@ -479,7 +493,7 @@ export function RegisterRoutes(app: express.Router) {
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         app.patch('/products/:productId',
-            authenticateMiddleware([{"jwt":["admin"]}]),
+            authenticateMiddleware([{"jwt":["manager"]}]),
             ...(fetchMiddlewares<RequestHandler>(ProductsController)),
             ...(fetchMiddlewares<RequestHandler>(ProductsController.prototype.patchProduct)),
 
@@ -506,7 +520,7 @@ export function RegisterRoutes(app: express.Router) {
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         app.get('/sales',
-            authenticateMiddleware([{"jwt":["admin"]}]),
+            authenticateMiddleware([{"jwt":["manager"]}]),
             ...(fetchMiddlewares<RequestHandler>(SaleController)),
             ...(fetchMiddlewares<RequestHandler>(SaleController.prototype.getSales)),
 
@@ -608,7 +622,7 @@ export function RegisterRoutes(app: express.Router) {
 
 
               const promise = controller.logout.apply(controller, validatedArgs as any);
-              promiseHandler(controller, promise, response, 200, next);
+              promiseHandler(controller, promise, response, 204, next);
             } catch (err) {
                 return next(err);
             }
@@ -640,6 +654,31 @@ export function RegisterRoutes(app: express.Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        app.get('/users/sellers',
+            authenticateMiddleware([{"jwt":["manager"]}]),
+            ...(fetchMiddlewares<RequestHandler>(UsersController)),
+            ...(fetchMiddlewares<RequestHandler>(UsersController.prototype.getSellers)),
+
+            function UsersController_getSellers(request: any, response: any, next: any) {
+            const args = {
+            };
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = getValidatedArgs(args, request, response);
+
+                const controller = new UsersController();
+
+
+              const promise = controller.getSellers.apply(controller, validatedArgs as any);
+              promiseHandler(controller, promise, response, 200, next);
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         app.post('/users',
             ...(fetchMiddlewares<RequestHandler>(UsersController)),
             ...(fetchMiddlewares<RequestHandler>(UsersController.prototype.createUser)),
@@ -647,6 +686,7 @@ export function RegisterRoutes(app: express.Router) {
             function UsersController_createUser(request: any, response: any, next: any) {
             const args = {
                     body: {"in":"body","name":"body","required":true,"ref":"CreateUserParams"},
+                    badRequestError: {"in":"res","name":"400","required":true,"ref":"BadRequestErrorResponse"},
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -673,7 +713,7 @@ export function RegisterRoutes(app: express.Router) {
             function UsersController_getUserProfile(request: any, response: any, next: any) {
             const args = {
                     request: {"in":"request","name":"request","required":true,"dataType":"object"},
-                    userId: {"in":"path","name":"userId","required":true,"dataType":"string"},
+                    userId: {"in":"path","name":"userId","required":true,"ref":"UUID"},
                     notFoundResponse: {"in":"res","name":"404","required":true,"ref":"NotFoundErrorResponse"},
             };
 
@@ -701,7 +741,7 @@ export function RegisterRoutes(app: express.Router) {
             function UsersController_patchUserProfile(request: any, response: any, next: any) {
             const args = {
                     request: {"in":"request","name":"request","required":true,"dataType":"object"},
-                    userId: {"in":"path","name":"userId","required":true,"dataType":"string"},
+                    userId: {"in":"path","name":"userId","required":true,"ref":"UUID"},
                     body: {"in":"body","name":"body","required":true,"ref":"UpdateUserProfileParams"},
                     notFoundResponse: {"in":"res","name":"404","required":true,"ref":"NotFoundErrorResponse"},
             };
@@ -729,7 +769,7 @@ export function RegisterRoutes(app: express.Router) {
 
             function UsersController_getUserFullInfo(request: any, response: any, next: any) {
             const args = {
-                    userId: {"in":"path","name":"userId","required":true,"dataType":"string"},
+                    userId: {"in":"path","name":"userId","required":true,"ref":"UUID"},
                     notFoundResponse: {"in":"res","name":"404","required":true,"ref":"NotFoundErrorResponse"},
             };
 
@@ -756,8 +796,10 @@ export function RegisterRoutes(app: express.Router) {
 
             function UsersController_patchUserFullInfo(request: any, response: any, next: any) {
             const args = {
-                    userId: {"in":"path","name":"userId","required":true,"dataType":"string"},
+                    request: {"in":"request","name":"request","required":true,"dataType":"object"},
+                    userId: {"in":"path","name":"userId","required":true,"ref":"UUID"},
                     body: {"in":"body","name":"body","required":true,"ref":"UpdateUserFullInfoParams"},
+                    notFoundErrorResponse: {"in":"res","name":"404","required":true,"ref":"NotFoundErrorResponse"},
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa

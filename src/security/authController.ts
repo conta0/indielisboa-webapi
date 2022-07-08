@@ -1,10 +1,10 @@
-import { Body, Controller, Post, Produces, Res, Response, Route, Security, SuccessResponse, Tags, TsoaResponse } from "tsoa";
+import { Body, Controller, Post, Res, Route, SuccessResponse, Tags, TsoaResponse } from "tsoa";
 import * as jwt from "jsonwebtoken";
 import { JWTFormat } from "./authorization";
 import { security as config } from "../config.json";
-import { UserService } from "../users/usersService";
-import { Password, Username } from "../common/model";
-import { NotFoundErrorResponse } from "../common/interfaces";
+import { User } from "../users/usersService";
+import { Password, Username, UUID } from "../common/model";
+import { NotFoundErrorResponse } from "../common/responses";
 
 const secret = process.env.SECRET || config.secret;
 const cookieName = process.env.COOKIE_NAME || config.cookieName;
@@ -28,10 +28,10 @@ export class AuthController extends Controller {
         const { username, password } = body;
 
         // Fetch user
-        const user = (await UserService.findOne({ where:{ username: username}}))?.toJSON();
+        const user = (await User.findOne({ where:{username: username}}))?.toJSON();
 
         // Check if user is valid and password matches
-        if (user == null || !(await UserService.validatePassword(user, password))) {
+        if (user == null || !(await User.validatePassword(user, password))) {
             return notFoundResponse(404, {
                 status: 404,
                 error: {}
@@ -44,14 +44,17 @@ export class AuthController extends Controller {
             userId: user.userId,
             role: user.role
         };
+        const options: jwt.SignOptions = {
+            expiresIn: config.tokenExpiresInSeconds
+        }
 
         // jsonwebtoken.sign() only works with callback
         return new Promise<LoginResult>((resolve, reject) => {
-            jwt.sign(payload, secret, function(err:any, token: any) {
+            jwt.sign(payload, secret, options, function(err:any, token: any) {
                 if (err) {
                     reject(err);
                 } else {
-                    controller.setHeader("Set-Cookie", `${cookieName}=${token}; Path=/;`);
+                    controller.setHeader("Set-Cookie", `${cookieName}=${token}; Path=/; Max-Age=${config.tokenExpiresInSeconds}`);
                     resolve({
                         status: 200,
                         data: {
@@ -68,7 +71,7 @@ export class AuthController extends Controller {
      */
     @Post("logout")
     @Tags(TAG_AUTH)
-    @SuccessResponse(200, "Logout successfull.")
+    @SuccessResponse(204, "Logout successfull.")
     public async logout(): Promise<void> {
         this.setHeader("Set-Cookie", `${cookieName}=; Path=/; Max-Age=1;`)
     }
@@ -79,17 +82,9 @@ interface LoginParams {
     password: Password,
 }
 
-/**
- * @example {
-        "status": 200,
-        "data": {
-            "userId": "424c9011-81e1-4ad7-818f-802f9a9bc9ce"
-        }
-    }
- */
 interface LoginResult {
     status: 200,
     data: {
-        userId: string
+        userId: UUID
     }
 }

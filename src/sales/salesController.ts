@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, Query, Res, Response, Route, Security, SuccessResponse, Tags, TsoaResponse, } from "tsoa";
-import { AuthenticationErrorResponse, AuthorizationErrorResponse, BadRequestErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "../common/interfaces";
+import { AuthenticationErrorResponse, AuthorizationErrorResponse, BadRequestErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "../common/responses";
 import { Sale, SaleItem } from "../model/sales";
 import { Role, SecurityScheme } from "../security/authorization";
 import { CreateSaleParams, CreateSaleItemParams } from "./salesDtos";
@@ -45,7 +45,7 @@ export class SaleController extends Controller {
      */
     @Get()
     @Tags(TAG_SALES)
-    @Security(SecurityScheme.JWT, [Role.ADMIN])
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
     @SuccessResponse("200", "Successfully returned a list of sales.")
     @Response<BadRequestErrorResponse>("400", "Bad Request", {
         status: 400,

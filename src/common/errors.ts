@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { ValidateError } from "tsoa";
-import { BadRequestErrorResponse, ServerErrorResponse } from "./interfaces";
+import { UniqueConstraintError } from "sequelize";
+import { FieldErrors, ValidateError } from "tsoa";
+import { BadRequestErrorResponse, ServerErrorResponse } from "./responses";
 
 
 export class AuthorizationError extends Error {};
@@ -35,6 +36,42 @@ export function requestErrorHandler(error: Error, request: Request, response: Re
         default:
             sendUnexpectedServerError(response);
     }
+}
+
+/**
+ * Used to map a UniqueConstraintError to FieldErrors object.
+ * With this strategy we can map whichever table column to any FieldErrors without exposing DB structure. 
+ * 
+ * @param path Name of the table column.
+ * @param name Alias of the column name for the FieldErrors object.
+ * @param message Description of the error.
+ */
+export interface SequelizeConstraintMapper {
+    [path: string]: {
+        name: string;
+        message: string;
+    }
+}
+
+/**
+ * Takes a Sequelize UniqueConstraintError and maps it to a FieldErrors object.
+ * In essence, we are trying to not expose DB structure while also explaining why this error occurred.
+ * 
+ * @param error Error being mapped to a FieldErrors object.
+ * @param mapper Specifies which columns to map.
+ */
+export function processSequelizeError(error: UniqueConstraintError, mapper: SequelizeConstraintMapper): FieldErrors {
+    return error.errors.reduce((fields: FieldErrors, err) => {
+        const { path, value } = err;
+        if (path == null || mapper[path] == undefined) return fields;
+        
+        const { name, message } = mapper[path];
+        fields[name] = {
+            message,
+            value
+        }
+        return fields;
+    }, {})
 }
 
 /**

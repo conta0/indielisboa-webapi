@@ -5,5 +5,8 @@
     "ignore": ["src/routes.ts", "src/swagger.json"],
     "events": {
         "restart": "tsoa spec-and-routes"
+    },
+    "env": {
+        "__DEV__": "true"
     }
 }

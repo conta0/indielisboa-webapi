@@ -4,9 +4,19 @@ import { FieldErrors } from "tsoa"
  * JSON response format for a "400 Bad Request" error.
  * 
  * @example {
- *  "status": 400,
- *  "error": {}
- * }
+        "status": 400,
+        "error": {
+            "message": "Error description.",
+            "fields": [
+                {
+                    "name": {
+                        "message": "Reason or description.",
+                        "value": "Any value or undefined."
+                    }
+                }
+            ]
+        }
+    }
  */
 export interface BadRequestErrorResponse {
     status: 400,

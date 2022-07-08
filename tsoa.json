@@ -9,7 +9,7 @@
       "specVersion": 3,
       "securityDefinitions": {
         "jwt": {
-          "type": "api_key",
+          "type": "apiKey",
           "in": "cookie",
           "name": "auth_token"
         }

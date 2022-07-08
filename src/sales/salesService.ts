@@ -1,6 +1,6 @@
 import { Sale } from "../model/sales"
 import { CreateSaleParams } from "./salesDtos";
-import { ServiceResult } from "../common/interfaces";
+import { ServiceResult } from "../common/responses";
 
 export class SalesService {
     public getSales(): Sale[] {

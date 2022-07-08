@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
-import { AuthenticationErrorResponse, AuthorizationErrorResponse, BadRequestErrorResponse, ServerErrorResponse } from "../common/interfaces";
+import { AuthenticationErrorResponse, AuthorizationErrorResponse, BadRequestErrorResponse, ServerErrorResponse } from "../common/responses";
 import { Role, SecurityScheme } from "../security/authorization";
 
 /**
@@ -36,7 +36,7 @@ export class LocationsController extends Controller {
      */
     @Get()
     @Tags(TAG_LOCATIONS)
-    @Security(SecurityScheme.JWT, [Role.ADMIN])
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
     @SuccessResponse("200", "Successfully returned a list of locations.")
     @Response<ServerErrorResponse>("500", "Internal Server Error")
     public async getLocations(
@@ -55,7 +55,7 @@ export class LocationsController extends Controller {
      */
     @Post()
     @Tags(TAG_LOCATIONS)
-    @Security(SecurityScheme.JWT, [Role.ADMIN])
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
     @SuccessResponse("201", "Successfully created a new location.")
     @Response<BadRequestErrorResponse>("400", "Bad Request", {
         status: 400,

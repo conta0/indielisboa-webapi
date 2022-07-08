@@ -89,7 +89,7 @@ export class ProductsController extends Controller {
      */
     @Patch("{productId}")
     @Tags(TAG_PRODUCTS)
-    @Security(SecurityScheme.JWT, [Role.ADMIN])
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
     public async patchProduct(
         @Path() productId: string,
         @Body() body: UpdateProductParams

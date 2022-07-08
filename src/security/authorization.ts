@@ -12,25 +12,28 @@ const cookieName = process.env.COOKIE_NAME || config.cookieName;
     As a bonus, adding new roles is trivial and we don't need to worry about breaking code.
     However, we have to be careful with the bit mappings.
     Example
-        - admin  = 0011
+        - manager  = 0011
         - seller = 0001
-        - none   = 0000
-    If we want to add the "manager" role that doesn't have the same privileges as "seller":
-        - manager = 0010
-        - manager = 0100
-    In the first case "admin" also has the privileges of "manager".
-    In the second case, "manager" doesn't share privileges with any other role.
+        - basic   = 0000
+    If we want to add the "supplier" role that doesn't have the same privileges as "seller":
+        - supplier = 0010
+        - supplier = 0100
+    In the first case "supplier" also has the privileges of "manager".
+    In the second case, "supplier" doesn't share privileges with any other role.
 */
 export enum Role {
-    ADMIN = "admin",
-    SELLER = "seller",
     BASIC = "basic",
+    SELLER = "seller",
+    MANAGER = "manager",
+    ADMIN = "admin",
 }
 
+// "Admin" should always be greater than everyone else's
 const roleValue = {
-    [Role.ADMIN]: 0xFF,
+    [Role.BASIC]: 0x00,
     [Role.SELLER]: 0x01,
-    [Role.BASIC]: 0x00
+    [Role.MANAGER]: 0x0F,
+    [Role.ADMIN]: 0xFF,
 };
 
 /**
@@ -94,13 +97,13 @@ export async function expressAuthentication(request: Request, securityName: stri
 async function jwtValidator(request: Request, scopes?: string[]) {
     const token = request.cookies[cookieName];
     if (token == undefined) {
-        return Promise.reject(new AuthenticationError("Missing an authentication token."))
+        return Promise.reject(new AuthenticationError("Missing an authentication token (jwt)."));
     }
     
     // Verify token.
     jwt.verify(token, secret, function(err: any, decoded: any) {
         if (err) {
-            throw err;
+            throw new AuthenticationError("Invalid authentication token (jwt)");
         }
 
         const { userId, role } = decoded as JWTFormat
@@ -124,7 +127,13 @@ async function jwtValidator(request: Request, scopes?: string[]) {
     });
 }
 
-
+/**
+ * Check if a given role has the same or more privileges than another.
+ * 
+ * @param actualRole Given role.
+ * @param targetRole Target role.
+ * @returns True if given role has same or more privileges.
+ */
 export function hasRolePrivileges(actualRole: Role, targetRole: Role): boolean {
     const target = roleValue[targetRole as keyof typeof roleValue];
     const actual = roleValue[actualRole as keyof typeof roleValue];
