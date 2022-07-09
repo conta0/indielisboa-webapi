@@ -7,6 +7,6 @@
         "restart": "tsoa spec-and-routes"
     },
     "env": {
-        "__DEV__": "true"
+        "NODE_ENV": "dev"
     }
 }

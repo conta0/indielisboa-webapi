@@ -6,8 +6,8 @@ import { User } from "../users/usersService";
 import { Password, Username, UUID } from "../common/model";
 import { NotFoundErrorResponse } from "../common/responses";
 
-const secret = process.env.SECRET || config.secret;
-const cookieName = process.env.COOKIE_NAME || config.cookieName;
+const secret: string = process.env.SECRET || config.secret;
+const cookieName: string = process.env.COOKIE_NAME || config.cookieName;
 
 const TAG_AUTH = "Auth";
 @Route("auth")
@@ -47,14 +47,17 @@ export class AuthController extends Controller {
         const options: jwt.SignOptions = {
             expiresIn: config.tokenExpiresInSeconds
         }
-
-        // jsonwebtoken.sign() only works with callback
+        
+        // jsonwebtoken.sign() only works with a callback
         return new Promise<LoginResult>((resolve, reject) => {
             jwt.sign(payload, secret, options, function(err:any, token: any) {
                 if (err) {
                     reject(err);
                 } else {
-                    controller.setHeader("Set-Cookie", `${cookieName}=${token}; Path=/; Max-Age=${config.tokenExpiresInSeconds}`);
+                    controller.setHeader(
+                        "Set-Cookie", 
+                        `${cookieName}=${token}; Path=/; Max-Age=${config.tokenExpiresInSeconds}; secure; httponly;`
+                    );
                     resolve({
                         status: 200,
                         data: {

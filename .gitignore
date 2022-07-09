@@ -1,2 +1,7 @@
+# Ignore all these
 node_modules/
 build/
+sslcerts/
+
+# Don't ignore these
+!*.gitkeep

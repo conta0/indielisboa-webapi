@@ -129,7 +129,7 @@ export class UsersController extends Controller {
         if (request.auth.userId !== userId && !hasRolePrivileges(request.auth.role, Role.MANAGER)) {
             return notFoundResponse(404, {status: 404, error: {}});
         }
-
+        
         const attributes = ["userId", "name"];
         const profile: UserProfile | null = await User.findByPk(userId, {attributes});
 

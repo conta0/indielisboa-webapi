@@ -1,7 +1,9 @@
-import express, { Express, Request, Response, Router } from "express";
+import express, { Express, Request, Response } from "express";
 import swaggerUI from "swagger-ui-express";
 import cookieParser from "cookie-parser";
+import { server as config } from "./config.json";
 
+// Single express instace
 export const app: Express = express();
 
 // OpenAPI specification
@@ -15,6 +17,20 @@ app.use(express.json());
 // Cookie parser middleware
 app.use(cookieParser());
 
+// Redirect HTTP requests.
+// If behind a trusted proxy, the request headers "x-forwarded" will be trusted.
+const TRUST_PROXY: boolean = config.trustProxy;
+if (config.trustProxy) {
+    app.enable("trust proxy");
+    app.use("*", (request: Request, response: Response, next: Function) => {
+        if (request.headers["x-forwarded-proto"] === "http") {
+            response.redirect(`https://${request.get("host")}${request.originalUrl}`);
+        } else {
+            next();
+        }
+    });
+}
+
 // Documentation routes
 app.get("/api-docs/openapi.json", (request: Request, response: Response) => {
     response.status(200);
@@ -26,6 +42,8 @@ app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(API_SPECIFICATION));
 // API Routes
 import { RegisterRoutes } from "./routes";
 import { requestErrorHandler } from "./common/errors";
+import { request, Server } from "http";
+import { serdes } from "express-openapi-validator";
 const ROUTER = express.Router();
 RegisterRoutes(ROUTER);
 app.use(API_PATH, ROUTER);

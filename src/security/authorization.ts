@@ -3,8 +3,8 @@ import * as jwt from "jsonwebtoken";
 import { AuthenticationError, AuthorizationError } from "../common/errors";
 import { security as config } from "../config.json";
 
-const secret = process.env.SECRET || config.secret;
-const cookieName = process.env.COOKIE_NAME || config.cookieName;
+const secret: string = process.env.SECRET || config.secret;
+const cookieName: string = process.env.COOKIE_NAME || config.cookieName;
 
 /* 
     A given role is mapped to a binary value.
@@ -42,7 +42,7 @@ const roleValue = {
  * @param auth.user User unique identifier.
  * @param auth.role User role in the system.
  */
-export interface AuthRequest extends Express.Request {
+export interface AuthRequest extends Request {
     auth: {
         userId: string,
         role: Role

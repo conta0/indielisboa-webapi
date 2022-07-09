@@ -13,8 +13,11 @@
             }
         }
     },
-    "app": {
-        "port": 443
+    "server": {
+        "port": 443,
+        "https": true,
+        "passphrase": "",
+        "trustProxy": true
     },
     "security": {
         "adminUsername": "admin",
