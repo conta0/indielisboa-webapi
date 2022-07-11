@@ -1,65 +1,25 @@
 import { Request } from "express";
 import * as jwt from "jsonwebtoken";
-import { AuthenticationError, AuthorizationError } from "../common/errors";
-import { security as config } from "../config.json";
+import { AuthenticationError, ForbiddenError } from "../common/errors";
+import { hasRolePrivileges, Role } from "../common/roles";
+import { jwt as config } from "../config.json";
+import { JwtAccessFormat } from "./authController";
 
-const secret: string = process.env.SECRET || config.secret;
-const cookieName: string = process.env.COOKIE_NAME || config.cookieName;
-
-/* 
-    A given role is mapped to a binary value.
-    Instead of iterating through a collection of scopes, we only need to match bits.
-    As a bonus, adding new roles is trivial and we don't need to worry about breaking code.
-    However, we have to be careful with the bit mappings.
-    Example
-        - manager  = 0011
-        - seller = 0001
-        - basic   = 0000
-    If we want to add the "supplier" role that doesn't have the same privileges as "seller":
-        - supplier = 0010
-        - supplier = 0100
-    In the first case "supplier" also has the privileges of "manager".
-    In the second case, "supplier" doesn't share privileges with any other role.
-*/
-export enum Role {
-    BASIC = "basic",
-    SELLER = "seller",
-    MANAGER = "manager",
-    ADMIN = "admin",
-}
-
-// "Admin" should always be greater than everyone else's
-const roleValue = {
-    [Role.BASIC]: 0x00,
-    [Role.SELLER]: 0x01,
-    [Role.MANAGER]: 0x0F,
-    [Role.ADMIN]: 0xFF,
-};
+const accessSecret: string = process.env.ACCESS_SECRET || config.accessSecret;
+const accessCookie: string = process.env.ACCESS_COOKIE || config.accessCookie;
 
 /**
  * Extends the Express Request object with user information.
  * 
- * @param auth.user User unique identifier.
- * @param auth.role User role in the system.
+ * @param auth.user User's unique identifier.
+ * @param auth.role User's Role in the system.
+ * @param auth.location The Location associated to the user.
  */
-export interface AuthRequest extends Request {
-    auth: {
-        userId: string,
-        role: Role
-    }
+ export interface AuthRequest extends Request {
+    auth: JwtAccessFormat
 }
 
-/**
- * The JSON Web Token format being used.
- * 
- * @param userId User unique identifier
- * @param role User role in the system.
- */
-export interface JWTFormat {
-    userId: string,
-    role: Role,
-}
-
+/** User with TSOA'a @Security(name: string, scope?: string[]) */
 export enum SecurityScheme {
     JWT = "jwt",
 }
@@ -81,7 +41,7 @@ const validators = {
 export async function expressAuthentication(request: Request, securityName: string, scopes?: string[]) : Promise<any> {
     const func = validators[securityName as keyof typeof validators];
     if (!func) {
-        throw new Error("Invalid security name.");
+        throw new Error(`Invalid security scheme: ${securityName}`);
     }
     return func(request, scopes);
 }
@@ -95,18 +55,18 @@ export async function expressAuthentication(request: Request, securityName: stri
  * @param scopes List of scopes required to access the resource.
 */
 async function jwtValidator(request: Request, scopes?: string[]) {
-    const token = request.cookies[cookieName];
+    const token = request.cookies[accessCookie];
     if (token == undefined) {
-        return Promise.reject(new AuthenticationError("Missing an authentication token (jwt)."));
+        return Promise.reject(new AuthenticationError("Missing access token."));
     }
     
     // Verify token.
-    jwt.verify(token, secret, function(err: any, decoded: any) {
+    jwt.verify(token, accessSecret, function(err: any, decoded: any) {
         if (err) {
-            throw new AuthenticationError("Invalid authentication token (jwt)");
+            throw new ForbiddenError("Invalid access token.");
         }
 
-        const { userId, role } = decoded as JWTFormat
+        const { userId, role } = decoded as JwtAccessFormat
 
         // Adds user info to the request.
         (request as any).auth = {
@@ -122,20 +82,7 @@ async function jwtValidator(request: Request, scopes?: string[]) {
         // Check if JWT contains target role.
         if (!hasRolePrivileges(role, scopes[0] as Role)) {
             console.log(`auth error: Got ${role} but expected ${scopes[0]}.`);
-            throw new AuthorizationError("Not enough privileges for this action.");
+            throw new ForbiddenError("Not enough privileges for this action.");
         }
     });
-}
-
-/**
- * Check if a given role has the same or more privileges than another.
- * 
- * @param actualRole Given role.
- * @param targetRole Target role.
- * @returns True if given role has same or more privileges.
- */
-export function hasRolePrivileges(actualRole: Role, targetRole: Role): boolean {
-    const target = roleValue[targetRole as keyof typeof roleValue];
-    const actual = roleValue[actualRole as keyof typeof roleValue];
-    return ((actual & target) === target);
 }

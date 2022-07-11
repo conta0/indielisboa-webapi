@@ -1,7 +1,11 @@
-# Ignore all these
+# Ignore all these.
 node_modules/
 build/
 sslcerts/
 
-# Don't ignore these
+# These files are created by TSOA during build.
+src/routes.ts
+src/swagger.json
+
+# Don't ignore these.
 !*.gitkeep

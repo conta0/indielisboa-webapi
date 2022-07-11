@@ -1,10 +1,12 @@
 import { Body, Controller, Get, Patch, Path, Post, Query, Request, Res, Response, Route, Security, SuccessResponse, Tags, TsoaResponse } from "tsoa";
 import { BadRequestErrorResponse, NotFoundErrorResponse } from "../common/responses";
 import { Password, UserModel, Username, UUID } from "../common/model";
-import { AuthRequest, hasRolePrivileges, Role, SecurityScheme } from "../security/authorization";
+import { AuthRequest, SecurityScheme } from "../security/authorization";
 import { User } from "./usersService";
 import { UniqueConstraintError } from "sequelize";
 import { processSequelizeError, SequelizeConstraintMapper } from "../common/errors";
+import { hasRolePrivileges, Role } from "../common/roles";
+import { hashData } from "../utils/crypto";
 
 const TAG_USERS = "Users";
 
@@ -41,9 +43,7 @@ export class UsersController extends Controller {
 
         return {
             status: 200,
-            data: {
-                list: userList
-            }
+            data: userList
         };
     }
 
@@ -64,9 +64,7 @@ export class UsersController extends Controller {
 
         return {
             status: 200,
-            data: {
-                list: sellerList
-            }
+            data: sellerList
         };
     }
 
@@ -81,9 +79,10 @@ export class UsersController extends Controller {
         @Res() badRequestError: TsoaResponse<400, BadRequestErrorResponse>
     ): Promise<PostUsersResult> {
         const { username, password, name } = body;
+        const hashedPw = await hashData(password);
 
         try {
-            const result = await User.create({username, password, name, role: Role.BASIC})
+            const result = await User.create({username, password: hashedPw, name, role: Role.BASIC})
             const user: UserModel = result.toJSON();
             return {
                 status: 201, 
@@ -341,17 +340,13 @@ interface UserFullInfo {
 /** JSON response format for the "GET /users" endpoint. */
 interface GetUsersResult {
     status: 200,
-    data: {
-        list: UserFullInfo[]
-    }
+    data: UserFullInfo[]
 }
 
-/** JSON response format for the "GET /users" endpoint. */
+/** JSON response format for the "GET /users/sellers" endpoint. */
 interface GetSellersResult {
     status: 200,
-    data: {
-        list: UserProfile[]
-    }
+    data: UserProfile[]
 }
 
 /** JSON response format for the "GET /users/{userId}/fullinfo" endpoint. */

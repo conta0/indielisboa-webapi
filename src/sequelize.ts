@@ -1,16 +1,36 @@
 import { Sequelize } from "sequelize";
 import { sequelize as options } from "./config.json";
 
-type SequelizeObserver = (seq: Sequelize) => Promise<void>;
-const observers: SequelizeObserver[] = [];
+/**
+ * Initializes the Model's associations.
+ */
+type AssociationsInit = () => Promise<void>
+
+/**
+ * Receives a Sequelize instance to initialize the Model.
+ * @param seq The Sequelize instance.
+ * @returns A promise to be either resolved after the Model is initialized or rejected with an Error.
+ */
+ type ModelInit = (seq: Sequelize) => Promise<void>;
+ const models: ModelInit[] = [];
+ const associations: AssociationsInit[] = [];
 
 /**
  * Models defined elsewhere call this method to sync with the database during initialization. 
  * 
- * @param observer Function that takes a sequelize instance and initializes the Model.
+ * @param init Function that takes a sequelize instance and initializes the Model.
  */
-export function registerObserver(observer: (seq: Sequelize) => Promise<void>) {
-    observers.push(observer);
+export function registerModel(init: ModelInit) {
+    models.push(init);
+}
+
+/**
+ * Model associations defined elsewhere call this method to sync with the database during initialization.
+ * 
+ * @param init Function that initializes the Model's associations.
+ */
+export function registerAssociations(init: AssociationsInit) {
+    associations.push(init);
 }
 
 /**
@@ -28,7 +48,8 @@ export async function initDatabase(): Promise<void> {
     
     console.log("Authenticated.");
 
-    await Promise.all(observers.map(func => func(sequelize)));
+    await Promise.all(models.map(func => func(sequelize)));
+    await Promise.all(associations.map(func => func()));
     await sequelize.sync();
 }
 

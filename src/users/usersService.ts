@@ -1,28 +1,25 @@
-import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model, Sequelize, UUIDV4 } from "sequelize";
-import { UserModel } from "../common/model";
-import { Role } from "../security/authorization";
-import bcrypt from "bcrypt";
-import { registerObserver } from "../sequelize";
-const SALT_ROUNDS = 8;
+import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, UUIDV4 } from "sequelize";
+import { Password, UserModel, Username } from "../common/model";
+import { registerAssociations, registerModel } from "../sequelize";
+import { Role } from "../common/roles";
 
-registerObserver(initUsersService);
+registerModel(initUserModel);
+registerAssociations(initUserAssociations);
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> implements UserModel {
     declare userId: CreationOptional<string>;
-    declare username: string;
-    declare password: string;
+    declare username: Username;
+    declare password: Password;
     declare name: string;
     declare role: Role;
-    declare createdAt: CreationOptional<Date>;
-    declare updatedAt: CreationOptional<Date>;
-
-    static async validatePassword(user: UserModel, password: string): Promise<boolean> {
-        return await bcrypt.compare(password, user.password);
-    }
+    declare createdAt: NonAttribute<Date>;
+    declare updatedAt: NonAttribute<Date>;
+    declare token: string | null;
+    declare tokenExpiresDate: Date | null;
 }
 
-async function initUsersService(sequelize: Sequelize): Promise<void> {
-    await User.init(
+async function initUserModel(sequelize: Sequelize): Promise<void> {
+    User.init(
         {
             userId: {
                 type: DataTypes.UUID,
@@ -34,32 +31,37 @@ async function initUsersService(sequelize: Sequelize): Promise<void> {
             },
             username: {
                 type: DataTypes.STRING,
-                unique: true
+                unique: true,
+                allowNull: false,
             },
             password: {
-                type: DataTypes.STRING
+                type: DataTypes.STRING,
+                allowNull: false,
             },
             name: {
-                type: DataTypes.STRING
+                type: DataTypes.STRING,
+                allowNull: false,
             },
             role: {
-                type: DataTypes.STRING
+                type: DataTypes.STRING,
+                allowNull: false,
             },
-            createdAt: {
-                type: DataTypes.DATE
+            token: {
+                type: DataTypes.STRING,
+                unique: true,
             },
-            updatedAt: {
-                type: DataTypes.DATE
+            tokenExpiresDate: {
+                type: DataTypes.DATE,
             }
         },
         {
             sequelize: sequelize,
             tableName: "User",
-            hooks: {
-                beforeCreate: async(user: UserModel) => {
-                    user.password = await bcrypt.hash(user.password, SALT_ROUNDS);
-                }
-            }
+            timestamps: true,
         }
     )
+}
+
+async function initUserAssociations(): Promise<void> {
+    ;
 }

@@ -1,11 +1,21 @@
 import { Request, Response } from "express";
 import { UniqueConstraintError } from "sequelize";
 import { FieldErrors, ValidateError } from "tsoa";
-import { BadRequestErrorResponse, ServerErrorResponse } from "./responses";
+import { BadRequestErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "./responses";
 
+class SimpleError {
+    name?: string;
+    message?: string;
 
-export class AuthorizationError extends Error {};
-export class AuthenticationError extends Error {name = "AuthorizationError"};
+    constructor(name: string = "SimpleError", message?: string) {
+        this.name = name;
+        this.message = message;
+    }
+}
+
+export class ForbiddenError extends SimpleError {name = "ForbiddenError"};
+export class AuthenticationError extends SimpleError {name = "AuthenticationError"};
+export class NotFoundError extends SimpleError {name = "NotFoundError"};
 
 /**
  * Run this handler when an error is raised. For example, the server can't connect to the database. 
@@ -15,9 +25,9 @@ export class AuthenticationError extends Error {name = "AuthorizationError"};
  * @param response Express Response object.
  * @param next Callback function. Will be ignored.
  */
-export function requestErrorHandler(error: Error, request: Request, response: Response, next: Function): void {
+export function requestErrorHandler(error: Error | SimpleError, request: Request, response: Response, next: Function): void {
     console.log("\x1b[31m%s\x1b[0m", `${error.name}: ${error.message}`);
-
+    
     // Use reflection by looking at the error's constructor. typeof doesn't work here. 
     const type = error.constructor;
     switch(type) {
@@ -30,8 +40,11 @@ export function requestErrorHandler(error: Error, request: Request, response: Re
         case AuthenticationError:
             sendAuthenticationError(response, error as AuthenticationError);
             break;
-        case AuthorizationError:
-            sendAuthorizationError(response, error as AuthorizationError);
+        case ForbiddenError:
+            sendAuthorizationError(response, error as ForbiddenError);
+            break;
+        case NotFoundError:
+            sendNotFoundError(response, error as NotFoundError);
             break;
         default:
             sendUnexpectedServerError(response);
@@ -78,7 +91,7 @@ export function processSequelizeError(error: UniqueConstraintError, mapper: Sequ
  * When the client sends a request with bad format (query, params or body), send a "400 Bad Request" JSON response.
  * The response should contain all the information necessary for the client to correct the request.
  * 
- * @param response Express response object.
+ * @param response Express Response object.
  * @param error ValidateError object.
  */
 async function sendValidationError(response: Response, error: ValidateError): Promise<void> {
@@ -94,7 +107,7 @@ async function sendValidationError(response: Response, error: ValidateError): Pr
 /**
  * When the client sends a request with wrong JSON syntax, send a "400 Bad Request" JSON response.
  * 
- * @param response Express response object.
+ * @param response Express Response object.
  * @param error SyntaxError object.
  */
 async function sendSyntaxError(response: Response, error: SyntaxError): Promise<void> {
@@ -111,7 +124,7 @@ async function sendSyntaxError(response: Response, error: SyntaxError): Promise<
 /**
  * When the client can't be authenticated, send a "401 Unauthorized" JSON response.
  * 
- * @param response Express response object.
+ * @param response Express Response object.
  * @param error AuthenticationError object.
  */
  async function sendAuthenticationError(response: Response, error: AuthenticationError): Promise<void> {
@@ -128,10 +141,10 @@ async function sendSyntaxError(response: Response, error: SyntaxError): Promise<
 /**
  * When the client can't access the requested resource, send a "403 Forbidden" JSON response.
  * 
- * @param response Express response object.
+ * @param response Express Response object.
  * @param error AuthorizationError object.
  */
-async function sendAuthorizationError(response: Response, error: AuthorizationError): Promise<void> {
+async function sendAuthorizationError(response: Response, error: ForbiddenError): Promise<void> {
     const authorizationError = {
         status: 403,
         error: {
@@ -143,9 +156,26 @@ async function sendAuthorizationError(response: Response, error: AuthorizationEr
 }
 
 /**
+ * When the client requests a resource that doesn't exist, send a "401 Not Found" JSON response.
+ * 
+ * @param response Express Response object.
+ * @param error NotFoundError object.
+ */
+ async function sendNotFoundError(response: Response, error: NotFoundError): Promise<void> {
+    const notFoundError: NotFoundErrorResponse = {
+        status: 404,
+        error: {
+            message: error.message
+        }
+    }
+
+    response.status(404).json(notFoundError);
+}
+
+/**
  * All unexpected errors (e.g., no database connection), are sent as a "500 Internal Server" Error JSON response.
  * 
- * @param response Express response object.
+ * @param response Express Response object.
  */
 async function sendUnexpectedServerError(response: Response): Promise<void> {
     const error: ServerErrorResponse = {

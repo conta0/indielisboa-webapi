@@ -1,33 +1,10 @@
 import { Body, Controller, Get, Post, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
-import { AuthenticationErrorResponse, AuthorizationErrorResponse, BadRequestErrorResponse, ServerErrorResponse } from "../common/responses";
-import { Role, SecurityScheme } from "../security/authorization";
-
-/**
- * Information about a location.
- * 
- * @example {
- *  "locationId": "location-1",
- *  "address": "Location 1"
- * }
- */
-export interface Location {
-    locationId: string,
-    address: string,
-}
+import { AuthenticationErrorResponse, ForbiddenErrorResponse, BadRequestErrorResponse, ServerErrorResponse } from "../common/responses";
+import { Role } from "../common/roles";
+import { SecurityScheme } from "../security/authorization";
+import { Location } from "./locationsService";
 
 const TAG_LOCATIONS = "Locations";
-
-class LocationsService {
-    findLocations() {
-        return [];
-    }
-
-    createLocation(params: CreateLocationParams) {
-        return undefined;
-    }
-}
-
-const locationsService = new LocationsService();
 
 @Route("locations")
 export class LocationsController extends Controller {
@@ -41,11 +18,11 @@ export class LocationsController extends Controller {
     @Response<ServerErrorResponse>("500", "Internal Server Error")
     public async getLocations(
     ): Promise<SearchLocationsResult> {
-        const locations = locationsService.findLocations();
+        Location.findAll();
         return {
             status: 200,
             data: {
-                locations: locations
+                locations: undefined
             }
         };
     }
@@ -69,16 +46,16 @@ export class LocationsController extends Controller {
         }
     })
     @Response<AuthenticationErrorResponse>("401", "Unauthorized")
-    @Response<AuthorizationErrorResponse>("403", "Forbidden")
+    @Response<ForbiddenErrorResponse>("403", "Forbidden")
     @Response<ServerErrorResponse>("500", "Internal Server Error")
     public async postSale(
         @Body() body: CreateLocationParams,
     ): Promise<CreateLocationResult> {
-        const result: any = locationsService.createLocation(body);
+        //const result: any = locationsService.createLocation(body);
         return {
             status: 201,
             data: {
-                location: result
+                location: undefined
             }
         };
     }
@@ -106,7 +83,7 @@ export class LocationsController extends Controller {
 interface SearchLocationsResult {
     status: 200,
     data: {
-        locations: Location[]
+        locations: undefined
     }
 }
 
@@ -126,7 +103,7 @@ interface SearchLocationsResult {
 interface CreateLocationResult {
     status: 201,
     data: {
-        location: Location
+        location: undefined
     }
 }
 

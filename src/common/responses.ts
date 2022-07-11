@@ -49,7 +49,7 @@ export interface AuthenticationErrorResponse {
  *  "error": {}
  * }
  */
-export interface AuthorizationErrorResponse {
+export interface ForbiddenErrorResponse {
     status: 403,
     error: {
         [key: string]: string
@@ -67,7 +67,7 @@ export interface AuthorizationErrorResponse {
 export interface NotFoundErrorResponse {
     status: 404,
     error: {
-        [key: string]: string
+        [key: string]: string | undefined
     }
 }
 

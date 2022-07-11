@@ -1,7 +1,8 @@
 import { Body, Controller, Get, Post, Query, Res, Response, Route, Security, SuccessResponse, Tags, TsoaResponse, } from "tsoa";
-import { AuthenticationErrorResponse, AuthorizationErrorResponse, BadRequestErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "../common/responses";
+import { AuthenticationErrorResponse, ForbiddenErrorResponse, BadRequestErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "../common/responses";
+import { Role } from "../common/roles";
 import { Sale, SaleItem } from "../model/sales";
-import { Role, SecurityScheme } from "../security/authorization";
+import { SecurityScheme } from "../security/authorization";
 import { CreateSaleParams, CreateSaleItemParams } from "./salesDtos";
 import { SalesService } from "./salesService";
 
@@ -59,7 +60,7 @@ export class SaleController extends Controller {
         }
     })
     @Response<AuthenticationErrorResponse>("401", "Unauthorized")
-    @Response<AuthorizationErrorResponse>("403", "Forbidden")
+    @Response<ForbiddenErrorResponse>("403", "Forbidden")
     @Response<ServerErrorResponse>("500", "Internal Server Error")
     public async getSales(
         @Query() limit?: number,
@@ -98,7 +99,7 @@ export class SaleController extends Controller {
         }
     })
     @Response<AuthenticationErrorResponse>("401", "Unauthorized")
-    @Response<AuthorizationErrorResponse>("403", "Forbidden")
+    @Response<ForbiddenErrorResponse>("403", "Forbidden")
     @Response<ServerErrorResponse>("500", "Internal Server Error")
     public async postSales(
         @Body() body: CreateSaleParams,

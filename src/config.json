@@ -19,11 +19,15 @@
         "passphrase": "",
         "trustProxy": true
     },
-    "security": {
+    "database": {
         "adminUsername": "admin",
-        "adminPassword": "password",
-        "secret": "change this",
-        "cookieName": "auth_token",
-        "tokenExpiresInSeconds": 604800
+        "adminPassword": "password"
+    },
+    "jwt": {
+        "accessCookie": "jwt_access",
+        "accessSecret": "change this",
+        "accessExpiresInSeconds": 1200,
+        "refreshCookie": "jwt_refresh",
+        "refreshExpiresInSeconds": 604800
     }
 }

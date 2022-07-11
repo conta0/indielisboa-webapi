@@ -1,6 +1,5 @@
 import { app } from "./app";
 import * as config from "./config.json";
-import { Role } from "./security/authorization";
 import { initDatabase } from "./sequelize"
 import { User } from "./users/usersService";
 
@@ -8,6 +7,7 @@ import path from "path";
 import fs from "fs";
 import http from "http";
 import https from "https";
+import { Role } from "./common/roles";
 
 const PORT: number = Number(process.env.PORT) || config.server.port;
 const USE_HTTPS: boolean = config.server.https;
@@ -27,8 +27,8 @@ const PASSPHRASE: string = process.env.PASSPHRASE || config.server.passphrase;
     const user = await User.findOne({where: {role: Role.ADMIN}});
     if (user == null) {
         console.log("No admin account detected.");
-        const username: string = process.env.ADMIN_USER || config.security.adminUsername;
-        const password: string = process.env.ADMIN_PW || config.security.adminPassword;
+        const username: string = process.env.ADMIN_USER || config.database.adminUsername;
+        const password: string = process.env.ADMIN_PW || config.database.adminPassword;
 
         if (username == null || password == null) {
             console.log("No admin configuration. Restart with valid configuration or create one directly.");

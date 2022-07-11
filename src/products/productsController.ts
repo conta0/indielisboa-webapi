@@ -1,18 +1,25 @@
 import { Body, Controller, Get, Patch, Path, Query, Route, Security, Tags } from "tsoa";
-import { Role, SecurityScheme } from "../security/authorization";
+import { ProductCategory, UUID } from "../common/model";
+import { Role } from "../common/roles";
+import { SecurityScheme } from "../security/authorization";
+import { Tshirt } from "./categories/tshirtModel";
+import { Bag } from "./categories/bagModel";
+import { Book } from "./categories/bookModel";
+import { Product } from "./productModel";
+import { Includeable, Op, Transaction, WhereOptions } from "sequelize";
+import { NotFoundError } from "../common/errors";
 
-const TAG_PRODUCTS = "Products";
-class ProductsService {
-    findProductById(productId: string) {
-        return undefined;
-    }
+// Stock below or equal to this value is considered "LAST"
+const STOCK_THRESHOLD = 3;
 
-    updateProduct(productId: string, params: UpdateProductParams) {
-        return undefined;
-    }
+enum ProductStatus {
+    STOCK = "in stock",
+    LAST = "last units",
+    SOLD_OUT = "sold out",
+    NO_INFO = "no info",
 }
 
-const productsService = new ProductsService();
+const TAG_PRODUCTS = "Products";
 
 @Route("products")
 export class ProductsController extends Controller {
@@ -20,63 +27,116 @@ export class ProductsController extends Controller {
      * If a search criteria is applied, only products with an exact match will be returned.
      * When applicable, if a search parameter has multiple values, returned products will match at least one of those values.
      * 
-     * @summary Get a list of products. You may specify a search criteria.
+     * @summary Retrieve a list of products. You may specify a search criteria.
      * 
      * @param limit Limit the number of products returned.
      * @isInt limit Must be an integer >= 1.
      * @minimum limit 1 minimum 1.
-     * @example limit 10
      * 
      * @param page Used for pagination. When limit is used,
      * chunks of products will be skipped (e.g. if page=5 and limit=10, the first 50 products will be skipped).
      * @isInt page Must be an integer >= 0.
      * @minimum page 0 minimum 0.
-     * @example page 0
      * 
      * @param priceMin Minimum product price (inclusive).
      * @minimum priceMin 0 minimum 0.
-     * @example priceMin 0
      * 
      * @param priceMax Maximum product price (inclusive).
      * @maximum priceMax 2000 maximum 2000.
-     * @example priceMax 50
      * 
-     * @param status Product availability.
-     * @example "Available"
+     * @param stock Product availability. If true, only returns products with available stock.
      * 
      * @param category Product category.
-     * @example "Tshirt"
      */
     @Get()
     @Tags(TAG_PRODUCTS)
     public async getProducts(
-        @Query() limit?: number,
-        @Query() page?: number,
-        @Query() priceMin?: number,
-        @Query() priceMax?: number,
-        @Query() status?: ProductStatus[],
+        @Query() limit: number = 10,
+        @Query() page: number = 0,
+        @Query() priceMin: number = 0,
+        @Query() priceMax: number = 2000,
+        @Query() stock: boolean = false,
         @Query() category?: ProductCategory
     ): Promise<GetProductsResult> {
+        // Where filter
+        const where: WhereOptions = {
+            price: {
+                [Op.gte]: priceMin,
+                [Op.lte]: priceMax
+            }
+        }
+
+        // If the request wants products in stock, minimum stock is 1. 
+        const minStock = (stock) ? 1 : 0;
+        const include: Includeable = {
+            required: stock,
+            association: Product.associations.stock,
+            attributes: ["quantity"],
+            where: {
+                quantity: {
+                    [Op.gte]: minStock
+                }
+            }
+        };
+
+        // Category special case
+        if (category != null) {
+            where.category = category
+        }
+
+        // Fetch products
+        const result = await Product.findAll({limit: limit, offset: page * limit, where, include});
+        const products: ProductPublicInfo[] = result.map(getProductPublicInfo);
         
         return {
             status: 200,
             data: {
-                products: []
+                products: products
             }
         }
     }
 
     /**
+     * Retrieves the publicly available information about a product.
      * 
-     * @summary Get detailed information of a product.
+     * @summary Retrieve a product's detailed information.
      */
     @Get("{productId}")
     @Tags(TAG_PRODUCTS)
     public async getProductById(
-        @Path() productId: string,
+        @Path() productId: UUID,
     ) : Promise<GetProductByIdResult> {
-        const product = productsService.findProductById(productId) as any;
+        const include: Includeable = {
+            required: false,
+            association: Product.associations.stock,
+            attributes: ["quantity"],
+        };
+
+        const result = await Product.sequelize?.transaction(
+            {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
+            async (t) => {
+                const product = await Product.findByPk(productId, {include, transaction: t});
+                if (product == null) {
+                    return null;
+                }
+                
+                const tags = await product.getCategoryTags(t);
+                return {product, tags};
+            }
+        );
         
+        // Product not found
+        if (result?.product == null) {
+            return Promise.reject(new NotFoundError());
+        }
+
+        const product: ProductPublicInfo = getProductPublicInfo(result.product);
+        if (result.tags != null) {
+            // Let's ignore the "productId"
+            const {productId, ...tags} = result.tags.toJSON() as any;
+            product.tags = tags;
+        }
+
         return {
             status: 200,
             data: product
@@ -94,7 +154,24 @@ export class ProductsController extends Controller {
         @Path() productId: string,
         @Body() body: UpdateProductParams
     ) : Promise<PatchProductResult> {
-        const product = productsService.updateProduct(productId, body) as any;
+        //const product = productsService.updateProduct(productId, body) as any;
+
+        //limit ||= 10; 
+        //console.log(limit);
+        //await Product.create({"name": "some", description: "some", "category": ProductCategory.TSHIRT, price: 10});
+        //await Product.create({"name": "some", description: "some", "category": ProductCategory.TSHIRT, price: 10});
+
+        /*
+        const p = await Product.create({"name": "some", description: "some", "category": ProductCategory.TSHIRT, price: 10});
+        await p.createTshirt({colour: TshirtColour.BLUE, size: TshirtSize.S, design: "adidas"})
+        const p2 = await Product.findAll({include: {
+            model: Tshirt,
+            where: {
+                design: "adidas",
+            }
+        }});
+        */
+        //console.log(p?.tshirt);
 
         return {
             status: 200
@@ -102,32 +179,52 @@ export class ProductsController extends Controller {
     }
 }
 
-enum ProductStatus {
-    "Available" = "available",
-    "Sold Out" = "sold out",
-    "Last Units" = "last units",
-    "No Info" = "no info"
+// ------------------------------ Helper Functions ------------------------------ //
+
+/**
+ * Receives a product and transforms it into a product with only public info.
+ * 
+ * @param product The product to be processed.
+ * @returns A product formatted with public info.
+ */
+function getProductPublicInfo(product: Product): ProductPublicInfo {
+    const stock = product.stock;
+    const totalStock = stock?.reduce((acc, entry) => acc + entry.quantity, 0);
+    const status: ProductStatus = (!product.active || stock?.length == 0) ? 
+        ProductStatus.NO_INFO : (totalStock!! == 0) ? 
+        ProductStatus.SOLD_OUT : (totalStock!! <= STOCK_THRESHOLD) ? 
+        ProductStatus.LAST : ProductStatus.STOCK;
+    
+    // Make formatted product
+    const publicInfo: ProductPublicInfo = {
+        productId: product.productId,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        status: status,
+        category: product.category,
+    }
+
+    return publicInfo;
 }
 
-enum ProductCategory {
-    "Tshirt" = "tshirt",
-    "Book" = "book",
-    "Bag" = "bag",
-    "Poster" = "poster"
+// ------------------------------ Response Objects ------------------------------ //
+
+// TSOA doesn't like "object", so this is a workaround
+interface ProductCategoryTags {
+    [name: string]: string
 }
 
-// TODO images, tags
+// TODO images
 interface ProductPublicInfo {
-    productId: string,
+    productId: UUID,
     name: string,
     description: string,
     price: number,
-    active: boolean,
     status: ProductStatus,
-    images: string[],
-    category: string,
-    // tags: undefined,
-    stock: string[],
+    //images: string[],
+    category: ProductCategory,
+    tags?: ProductCategoryTags,
 }
 
 interface ProductProtectedInfo extends ProductPublicInfo {
@@ -144,7 +241,7 @@ interface GetProductsResult {
 
 interface GetProductByIdResult {
     status: 200,
-    data: ProductPublicInfo
+    data?: ProductPublicInfo
 }
 
 // TODO
