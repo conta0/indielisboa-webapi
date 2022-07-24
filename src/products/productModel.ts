@@ -1,4 +1,4 @@
-import { Association, BelongsToManyAddAssociationMixin, BelongsToManyGetAssociationsMixin, CreationOptional, DataTypes, FindAttributeOptions, FindOptions, HasManyGetAssociationsMixin, HasOneCreateAssociationMixin, HasOneGetAssociationMixin, Includeable, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, Transaction, UUIDV4 } from "sequelize";
+import { Association, BelongsToManyAddAssociationMixin, BelongsToManyGetAssociationsMixin, CreationOptional, DataTypes, FindOptions, HasManyGetAssociationsMixin, HasOneCreateAssociationMixin, HasOneGetAssociationMixin, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, Transaction, UUIDV4 } from "sequelize";
 import { ProductModel, UUID } from "../common/model";
 import { Location } from "../locations/locationModel";
 import { registerAssociations, registerModel } from "../sequelize";
@@ -101,10 +101,16 @@ async function initProductModel(sequelize: Sequelize): Promise<void> {
             name: {
                 type: DataTypes.STRING,
                 allowNull: false,
+                validate: {
+                    notEmpty: true
+                }
             },
             description: {
                 type: DataTypes.STRING,
                 allowNull: false,
+                validate: {
+                    notEmpty: true,
+                }
             },
             price: {
                 type: PRODUCT_PRICE,

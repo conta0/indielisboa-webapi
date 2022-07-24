@@ -21,8 +21,11 @@ export enum ErrorCode {
     // Request's format is invalid (e.g., the request expects a string and receives a number).
     REQ_FORMAT = "request.format",
 
-    // The Request can't be completed because of confliting data with an existing resource.
-    DUPLICATED = "resource.duplicated"
+    // The request can't be completed because the target resource doesn't exist.
+    NOT_FOUND = "resource.not_found",
+
+    // The request can't be completed because of confliting data with an existing resource.
+    DUPLICATED = "resource.duplicated",
 }
 
 interface SimpleErrorConstructor {
@@ -35,7 +38,7 @@ interface SimpleErrorConstructor {
  * A wrapper class for the application custom errors.
  * We don't need a stack frame for this type of errors.
  */
-class SimpleError {
+export class SimpleError {
     name?: string;
     code?: ErrorCode;
     message?: string;

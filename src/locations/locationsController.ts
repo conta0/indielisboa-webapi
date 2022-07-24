@@ -1,10 +1,9 @@
-import { Transaction, UniqueConstraintError } from "sequelize";
-import { Body, Controller, Get, Path, Post, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
-import { ConflitError, ErrorCode, NotFoundError } from "../common/errors";
+import { ForeignKeyConstraintError, InferCreationAttributes, Transaction, UniqueConstraintError } from "sequelize";
+import { Body, Controller, Get, Patch, Path, Post, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
+import { BadRequestError, ConflitError, ErrorCode, NotFoundError, SimpleError } from "../common/errors";
 import { UUID } from "../common/model";
 import { AuthenticationErrorResponse, ForbiddenErrorResponse, BadRequestErrorResponse, ServerErrorResponse, ConflitErrorResponse } from "../common/responses";
 import { Role } from "../common/roles";
-import { Product } from "../products/productModel";
 import { Stock } from "../products/stockModel";
 import { Price, ProductCategory } from "../products/types";
 import { SecurityScheme } from "../security/authorization";
@@ -92,7 +91,7 @@ export class LocationsController extends Controller {
 
     /**
      * Returns the location information and its list of products (stock).
-     * Each product of this list has its unique identifier, name, price, category and quantity at the location.
+     * Each product in this list has its unique identifier, name, price, category and quantity at the location.
      * 
      * @summary Retrieve the location info and its list of products.
      */
@@ -133,6 +132,85 @@ export class LocationsController extends Controller {
             status: 200,
             data: locationInfo
         };
+    }
+
+    /**
+     * Updates the stock of a location with multiple products.
+     * Existing stock of other prodcuts won't be modified unless part of the update.
+     * 
+     * @summary Update the stock at a location.
+     * 
+     * @param locationId The location's unique identifier.
+     */
+    @Patch("{locationId}/stock")
+    @Tags(TAG_LOCATIONS)
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
+    @SuccessResponse(204, "Successfully updated stock.")
+    @Response<BadRequestErrorResponse>(400, "Bad Request.")
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<NotFoundError>(404, "Location not found.")
+    @Response<ConflitErrorResponse>(409, "Can't update stock.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
+    public async updateLocationStock(
+        @Path() locationId: UUID,
+        @Body() body: UpdateLocationStockParams
+    ) : Promise<void> {
+        const { list } = body;
+        const productIds = list.map(item => item.productId);
+
+        // Sanity check. Don't allow repeated productId.
+        if (productIds.some((id, idx) => productIds.lastIndexOf(id) != idx)) {
+            return Promise.reject(new BadRequestError({
+                code: ErrorCode.REQ_FORMAT,
+                message: "Repeated productId not allowed."
+            }));
+        }
+
+        const toUpsert: InferCreationAttributes<Stock>[] = list.map<InferCreationAttributes<Stock>>(stock => ({
+            locationId: locationId,
+            productId: stock.productId,
+            quantity: stock.quantity
+        }));
+
+        try {
+            const result = await Location.sequelize!!.transaction(
+                {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
+                async(t) => {
+                    const location = await Location.findByPk(locationId, {transaction: t});
+
+                    // Location doesn't exist
+                    if (location == null) {
+                        return new NotFoundError({
+                            message: "Location doesn't exist.",
+                            code: ErrorCode.NOT_FOUND,
+                            fields: {
+                                "locationId": {
+                                    message: "This locationId doesn't exist.",
+                                    value: locationId
+                                }
+                            }
+                        });
+                    }
+
+                    await Stock.bulkCreate(toUpsert, {updateOnDuplicate: ["quantity"], transaction: t});
+                }
+            );
+
+            // Location doesn't exist
+            if (result instanceof SimpleError) {
+                return Promise.reject(result);
+            }
+
+        } catch (err) {
+            // Error during upsert
+            if (err instanceof ForeignKeyConstraintError) {
+                return Promise.reject(new ConflitError({
+                    message: "Can't update location's stock. Some products don't exist."
+                }));
+            }
+            throw err;
+        }
     }
 }
 
@@ -183,6 +261,16 @@ function toLocationInfo(location: Location): LocationInfo {
  interface CreateLocationParams {
     /** @example "Some address" */
     address: string
+}
+
+interface LocationStock {
+    productId: UUID,
+    quantity: number,
+}
+
+/** JSON request format for the "PATCH /locations/{locationId}/stock" endpoint. */
+interface UpdateLocationStockParams {
+    list: LocationStock[]
 }
 
 // ------------------------------ Response Formats ------------------------------ //

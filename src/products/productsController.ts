@@ -5,10 +5,11 @@ import { SecurityScheme } from "../security/authorization";
 import { TshirtColour, TshirtSize } from "./categories/tshirtModel";
 import { BagColour } from "./categories/bagModel";
 import { Product } from "./productModel";
-import { Includeable, Model, Op, Order, OrderItem, Transaction, UniqueConstraintError, WhereOptions } from "sequelize";
-import { ConflitError, NotFoundError } from "../common/errors";
+import { ForeignKeyConstraintError, Includeable, InferCreationAttributes, Model, Op, Order, OrderItem, Transaction, UniqueConstraintError, WhereOptions } from "sequelize";
+import { BadRequestError, ConflitError, ErrorCode, NotFoundError, SimpleError } from "../common/errors";
 import { AuthenticationErrorResponse, BadRequestErrorResponse, ConflitErrorResponse, ForbiddenErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "../common/responses";
 import { ProductCategory } from "./types";
+import { Stock } from "./stockModel";
 
 // ------------------------------ Types ------------------------------ //
 
@@ -163,7 +164,7 @@ export class ProductsController extends Controller {
 
     /**
      * Retrieves the protected information of a product and its list of locations (stock).
-     * Each location of this list has its unique identifier and its address.
+     * Each location in this list has its unique identifier and its address.
      * 
      * @summary Retrieve a product's protected information.
      * 
@@ -315,11 +316,11 @@ export class ProductsController extends Controller {
      * Update a products information, except its tags and category.
      * Returns the updated product.
      * 
-     * @summary Update a product's information.
+     * @summary Update a product's protected information.
      * 
      * @param productId The product's unique identifier.
      */
-    @Patch("{productId}")
+    @Patch("{productId}/protected")
     @Tags(TAG_PRODUCTS)
     @Security(SecurityScheme.JWT, [Role.MANAGER])
     @SuccessResponse(200, "Successfully updated the product.")
@@ -353,6 +354,85 @@ export class ProductsController extends Controller {
         return {
             status: 200,
             data: protectedInfo
+        }
+    }
+
+    /**
+     * Updates the stock of a product at multiple locations.
+     * Existing stock in other locations won't be modified unless part of the update.
+     * 
+     * @summary Update the stock of a product.
+     * 
+     * @param productId The product's unique identifier.
+     */
+    @Patch("{productId}/stock")
+    @Tags(TAG_PRODUCTS)
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
+    @SuccessResponse(204, "Successfully updated stock.")
+    @Response<BadRequestErrorResponse>(400, "Bad Request.")
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<NotFoundError>(404, "Product not found.")
+    @Response<ConflitErrorResponse>(409, "Can't update stock.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
+    public async updateProductstock(
+        @Path() productId: UUID,
+        @Body() body: UpdateProductStockParams
+    ) : Promise<void> {
+        const { list } = body;
+        const locations = list.map(item => item.locationId);
+
+        // Sanity check. Don't allow repeated locationIds.
+        if (locations.some((id, idx) => locations.lastIndexOf(id) != idx)) {
+            return Promise.reject(new BadRequestError({
+                code: ErrorCode.REQ_FORMAT,
+                message: "Repeated locationId not allowed."
+            }));
+        }
+
+        const toUpsert: InferCreationAttributes<Stock>[] = list.map<InferCreationAttributes<Stock>>(stock => ({
+            productId: productId,
+            locationId: stock.locationId,
+            quantity: stock.quantity
+        }));
+
+        try {
+            const result = await Product.sequelize!!.transaction(
+                {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
+                async(t) => {
+                    const product = await Product.findByPk(productId, {transaction: t});
+
+                    // Product not found
+                    if (product == null) {
+                        return new NotFoundError({
+                            code: ErrorCode.NOT_FOUND,
+                            message: "Product not found.",
+                            fields: {
+                                "productId": {
+                                    message: "This productId doesn't exist.",
+                                    value: productId
+                                }
+                            }
+                        });
+                    }
+
+                    await Stock.bulkCreate(toUpsert, {updateOnDuplicate: ["quantity"], transaction: t});
+                }
+            );
+
+            // Reject errors
+            if (result instanceof SimpleError) {
+                return Promise.reject(result);
+            }
+
+        } catch (err) {
+            // Error during upsert
+            if (err instanceof ForeignKeyConstraintError) {
+                return Promise.reject(new ConflitError({
+                    message: "Can't update product's stock. Some locations don't exist."
+                }));
+            }
+            throw err;
         }
     }
 }
@@ -418,10 +498,10 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
     const tags = productAndTags.tags?.toJSON<ProductCategoryTags>();
 
     const stock = product.stock?.map(s => ({locationId: s.locationId, quantity: s.quantity}));
-    const totalQuantity = stock?.reduce((acc, entry) => acc + entry.quantity, 0);
+    const totalStock = stock?.reduce((acc, entry) => acc + entry.quantity, 0);
     const status: ProductStatus = (!product.active || stock?.length == 0) ? 
-        ProductStatus.NO_INFO : (totalQuantity!! == 0) ? 
-        ProductStatus.SOLD_OUT : (totalQuantity!! <= STOCK_THRESHOLD) ? 
+        ProductStatus.NO_INFO : (totalStock!! == 0) ? 
+        ProductStatus.SOLD_OUT : (totalStock!! <= STOCK_THRESHOLD) ? 
         ProductStatus.LAST : ProductStatus.STOCK;
     
     
@@ -436,7 +516,7 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
         tags: tags || null,
         active: product.active,
         stock: stock || [],
-        totalQuantity: totalQuantity || 0,
+        totalStock: totalStock || 0,
     }
 
     return protectedInfo;
@@ -504,6 +584,15 @@ interface UpdateProductParams {
     active?: boolean,
 }
 
+interface ProductStock {
+    locationId: UUID,
+    quantity: number,
+}
+
+interface UpdateProductStockParams {
+    list: ProductStock[]
+}
+
 // ------------------------------ Response Formats ------------------------------ //
 
 // TSOA doesn't like "object", so this is a workaround.
@@ -528,12 +617,12 @@ interface ProductProtectedInfo {
     /** @example null */
     tags: ProductCategoryTags | null,
     stock: ProductStockInfo[],
-    totalQuantity: number,
+    totalStock: number,
     active: boolean,
 }
 
 // Public info is the same as protected info, except a few properties.
-type ProductPublicInfo = Omit<ProductProtectedInfo, "active" | "stock" | "totalQuantity">
+type ProductPublicInfo = Omit<ProductProtectedInfo, "active" | "stock" | "totalStock">
 
 /** JSON response format for the "GET /products" endpoint. */
 interface GetProductsResult {
