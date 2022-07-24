@@ -4,7 +4,7 @@ import { Password, UserModel, Username, UUID } from "../common/model";
 import { AuthRequest, SecurityScheme } from "../security/authorization";
 import { User } from "./usersService";
 import { UniqueConstraintError } from "sequelize";
-import { processSequelizeError, SequelizeConstraintMapper } from "../common/errors";
+import { ConflitError } from "../common/errors";
 import { hasRolePrivileges, Role } from "../common/roles";
 import { hashData } from "../utils/crypto";
 
@@ -76,7 +76,6 @@ export class UsersController extends Controller {
     @SuccessResponse("201", "Successfully created a new user.")
     public async createUser(
         @Body() body: CreateUserParams,
-        @Res() badRequestError: TsoaResponse<400, BadRequestErrorResponse>
     ): Promise<PostUsersResult> {
         const { username, password, name } = body;
         const hashedPw = await hashData(password);
@@ -93,16 +92,12 @@ export class UsersController extends Controller {
             }
         } catch(error: any) {
             if (error instanceof UniqueConstraintError) {
-                const mapper: SequelizeConstraintMapper = {
-                    "username": {name: "body.username", message: "Username already exists."}
-                }
-                const fields = processSequelizeError(error, mapper);
-                return badRequestError(400, {
-                    status: 400, 
-                    error: {
-                        fields: fields
+                return Promise.reject(new ConflitError({message: "User already exists.", fields: {
+                    "body.username": {
+                        message: "Duplicated username.",
+                        value: username,
                     }
-                });
+                }}));
             }
 
             return Promise.reject(error);

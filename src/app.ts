@@ -20,7 +20,7 @@ app.use(cookieParser());
 // Redirect HTTP requests.
 // If behind a trusted proxy, the request headers "x-forwarded" will be trusted.
 const TRUST_PROXY: boolean = config.trustProxy;
-if (config.trustProxy) {
+if (TRUST_PROXY) {
     app.enable("trust proxy");
     app.use("*", (request: Request, response: Response, next: Function) => {
         if (request.headers["x-forwarded-proto"] === "http") {
@@ -42,8 +42,7 @@ app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(API_SPECIFICATION));
 // API Routes
 import { RegisterRoutes } from "./routes";
 import { requestErrorHandler } from "./common/errors";
-import { request, Server } from "http";
-import { serdes } from "express-openapi-validator";
+
 const ROUTER = express.Router();
 RegisterRoutes(ROUTER);
 app.use(API_PATH, ROUTER);

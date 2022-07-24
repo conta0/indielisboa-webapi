@@ -1,7 +1,7 @@
 import { Association, BelongsToGetAssociationMixin, DataTypes, ForeignKey, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize } from "sequelize";
-import { ProductCategory } from "../../common/model";
 import { registerAssociations, registerModel } from "../../sequelize";
 import { CATEGORY_FK, Product } from "../productModel";
+import { ProductCategory } from "../types";
 
 export enum TshirtSize {
     KID = "kid",

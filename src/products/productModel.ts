@@ -1,11 +1,12 @@
-import { Association, BelongsToManyAddAssociationMixin, BelongsToManyGetAssociationsMixin, CreationOptional, DataTypes, HasManyGetAssociationsMixin, HasOneCreateAssociationMixin, HasOneGetAssociationMixin, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, Transaction, UUIDV4 } from "sequelize";
-import { ProductCategory, ProductModel, UUID } from "../common/model";
+import { Association, BelongsToManyAddAssociationMixin, BelongsToManyGetAssociationsMixin, CreationOptional, DataTypes, FindAttributeOptions, FindOptions, HasManyGetAssociationsMixin, HasOneCreateAssociationMixin, HasOneGetAssociationMixin, Includeable, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, Transaction, UUIDV4 } from "sequelize";
+import { ProductModel, UUID } from "../common/model";
 import { Location } from "../locations/locationsService";
 import { registerAssociations, registerModel } from "../sequelize";
 import { Bag } from "./categories/bagModel";
 import { Book } from "./categories/bookModel";
 import { Tshirt } from "./categories/tshirtModel";
 import { Stock, STOCK_LOCATION_FK, STOCK_PRODUCT_FK } from "./stockModel";
+import { ProductCategory } from "./types";
 
 export const CATEGORY_FK = "productId"; 
 
@@ -64,16 +65,18 @@ export class Product extends Model<InferAttributes<Product>, InferCreationAttrib
      * A wrapper function that will retrieve this product's tags, should they exist. 
      * 
      * @param transaction The transaction in which the query will run.
-     * @returns 
+     * @returns A promise to be either resolved with the Product's tags or rejected with an Error.
      */
-    async getCategoryTags(transaction?: Transaction) {
+    async getCategoryTags(transaction?: Transaction){
+        // Let's exclude the "productId" because it's a foreign key to this instance.
+        const options: FindOptions = {attributes: {exclude: ["productId"]}, transaction: transaction};
         switch(this.category) {
             case ProductCategory.TSHIRT:
-                return this.getTshirt({transaction});
+                return this.getTshirt(options);
             case ProductCategory.BAG:
-                return this.getBag({transaction});
+                return this.getBag(options);
             case ProductCategory.BOOK:
-                return this.getBook({transaction});
+                return this.getBook(options);
         }
     }
 }

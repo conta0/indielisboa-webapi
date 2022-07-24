@@ -1,6 +1,6 @@
-import { Request } from "express";
+import { Request, response } from "express";
 import * as jwt from "jsonwebtoken";
-import { AuthenticationError, ForbiddenError } from "../common/errors";
+import { AuthenticationError, ErrorCode, ForbiddenError } from "../common/errors";
 import { hasRolePrivileges, Role } from "../common/roles";
 import { jwt as config } from "../config.json";
 import { JwtAccessFormat } from "./authController";
@@ -57,13 +57,17 @@ export async function expressAuthentication(request: Request, securityName: stri
 async function jwtValidator(request: Request, scopes?: string[]) {
     const token = request.cookies[accessCookie];
     if (token == undefined) {
-        return Promise.reject(new AuthenticationError("Missing access token."));
+        response.setHeader("WWW-Authenticate", "Cookie")
+        return Promise.reject(new AuthenticationError({message: "Missing authentication token.", code: ErrorCode.TOKEN_MISSING}));
     }
     
     // Verify token.
     jwt.verify(token, accessSecret, function(err: any, decoded: any) {
         if (err) {
-            throw new ForbiddenError("Invalid access token.");
+            if (err instanceof jwt.TokenExpiredError) {
+                throw new AuthenticationError({message: "Expired access token.", code: ErrorCode.TOKEN_EXPIRED});
+            }
+            throw new ForbiddenError({message: "Invalid access token.", code: ErrorCode.TOKEN_INVALID});
         }
 
         const { userId, role } = decoded as JwtAccessFormat
@@ -74,15 +78,13 @@ async function jwtValidator(request: Request, scopes?: string[]) {
             role: role
         }
 
-        console.log("jwt decoded: ", decoded);
-
         // No scope specified. Nothing to do.
         if (scopes == undefined || scopes == []) return;
 
         // Check if JWT contains target role.
         if (!hasRolePrivileges(role, scopes[0] as Role)) {
             console.log(`auth error: Got ${role} but expected ${scopes[0]}.`);
-            throw new ForbiddenError("Not enough privileges for this action.");
+            throw new ForbiddenError({message: "Not enough privileges for this action.", code: ErrorCode.PRIVILEGE});
         }
     });
 }

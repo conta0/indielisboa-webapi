@@ -11,7 +11,7 @@
     "start": "node .",
     "build": "tsoa spec-and-routes && tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon"
+    "dev": "tsoa spec-and-routes && nodemon"
   },
   "author": "",
   "license": "ISC",

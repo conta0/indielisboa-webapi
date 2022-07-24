@@ -1,21 +1,47 @@
 import { Request, Response } from "express";
-import { UniqueConstraintError } from "sequelize";
 import { FieldErrors, ValidateError } from "tsoa";
-import { BadRequestErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "./responses";
+import { AuthenticationErrorResponse, BadRequestErrorResponse, ConflitErrorResponse, ForbiddenErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "./responses";
 
+export enum ErrorCode {
+    UNSPECIFIED = "unspecified",
+    TOKEN_MISSING = "token.missing",
+    TOKEN_EXPIRED = "token.expired",
+    TOKEN_INVALID = "token.invalid",
+    PRIVILEGE = "privilege",
+    REQ_SYNTAX = "request.syntax",
+    REQ_FORMAT = "request.format",
+    REQ_DATA = "request.data",
+}
+
+interface SimpleErrorConstructor {
+    code?: ErrorCode,
+    message?: string,
+    fields?: FieldErrors,
+}
+
+/**
+ * A wrapper class for the application custom errors.
+ * We don't need a stack frame for this type of errors.
+ */
 class SimpleError {
     name?: string;
+    code?: ErrorCode;
     message?: string;
+    fields?: FieldErrors;
 
-    constructor(name: string = "SimpleError", message?: string) {
-        this.name = name;
-        this.message = message;
+    constructor(params?: SimpleErrorConstructor) {
+        this.name = "SimpleError";
+        this.message = params?.message;
+        this.code = params?.code || ErrorCode.UNSPECIFIED;
+        this.fields = params?.fields;
     }
 }
 
-export class ForbiddenError extends SimpleError {name = "ForbiddenError"};
+export class BadRequestError extends SimpleError {name = "BadRequestError"}
 export class AuthenticationError extends SimpleError {name = "AuthenticationError"};
+export class ForbiddenError extends SimpleError {name = "ForbiddenError"};
 export class NotFoundError extends SimpleError {name = "NotFoundError"};
+export class ConflitError extends SimpleError {name = "ConflitError"}
 
 /**
  * Run this handler when an error is raised. For example, the server can't connect to the database. 
@@ -37,6 +63,9 @@ export function requestErrorHandler(error: Error | SimpleError, request: Request
         case SyntaxError:
             sendSyntaxError(response, error as SyntaxError);
             break;
+        case BadRequestError:
+            sendBadRequestError(response, error as BadRequestError);
+            break;
         case AuthenticationError:
             sendAuthenticationError(response, error as AuthenticationError);
             break;
@@ -46,45 +75,12 @@ export function requestErrorHandler(error: Error | SimpleError, request: Request
         case NotFoundError:
             sendNotFoundError(response, error as NotFoundError);
             break;
+        case ConflitError:
+            sendConflitError(response, error as ConflitError);
+            break;
         default:
             sendUnexpectedServerError(response);
     }
-}
-
-/**
- * Used to map a UniqueConstraintError to FieldErrors object.
- * With this strategy we can map whichever table column to any FieldErrors without exposing DB structure. 
- * 
- * @param path Name of the table column.
- * @param name Alias of the column name for the FieldErrors object.
- * @param message Description of the error.
- */
-export interface SequelizeConstraintMapper {
-    [path: string]: {
-        name: string;
-        message: string;
-    }
-}
-
-/**
- * Takes a Sequelize UniqueConstraintError and maps it to a FieldErrors object.
- * In essence, we are trying to not expose DB structure while also explaining why this error occurred.
- * 
- * @param error Error being mapped to a FieldErrors object.
- * @param mapper Specifies which columns to map.
- */
-export function processSequelizeError(error: UniqueConstraintError, mapper: SequelizeConstraintMapper): FieldErrors {
-    return error.errors.reduce((fields: FieldErrors, err) => {
-        const { path, value } = err;
-        if (path == null || mapper[path] == undefined) return fields;
-        
-        const { name, message } = mapper[path];
-        fields[name] = {
-            message,
-            value
-        }
-        return fields;
-    }, {})
 }
 
 /**
@@ -95,13 +91,14 @@ export function processSequelizeError(error: UniqueConstraintError, mapper: Sequ
  * @param error ValidateError object.
  */
 async function sendValidationError(response: Response, error: ValidateError): Promise<void> {
-    const badRequestError: BadRequestErrorResponse = {
+    const body: BadRequestErrorResponse = {
         status: 400,
         error: {
+            code: ErrorCode.REQ_FORMAT,
             fields: error.fields
         }
     };
-    response.status(400).json(badRequestError);
+    response.status(400).json(body);
 }
 
 /**
@@ -111,31 +108,58 @@ async function sendValidationError(response: Response, error: ValidateError): Pr
  * @param error SyntaxError object.
  */
 async function sendSyntaxError(response: Response, error: SyntaxError): Promise<void> {
-    const badRequestError: BadRequestErrorResponse = {
+    const body: BadRequestErrorResponse = {
         status: 400,
         error: {
+            code: ErrorCode.REQ_SYNTAX,
             message: "Expected a JSON request."
         }
     };
 
-    response.status(400).json(badRequestError);
+    response.status(400).json(body);
 }
 
 /**
- * When the client can't be authenticated, send a "401 Unauthorized" JSON response.
+ * When the client's request is malformed or contains invalid data, even after passing through the
+ * checks, send a "400 Bad Request" JSON response.
+ * 
+ * @param response Express Response object.
+ * @param error BadRequestError object.
+ */
+ async function sendBadRequestError(response: Response, error: BadRequestError): Promise<void> {
+    const body: BadRequestErrorResponse = {
+        status: 400,
+        error: {
+            code: error.code,
+            message: error.message,
+            fields: error.fields
+        }
+    }
+
+    response.status(400).json(body);
+}
+
+/**
+ * When the client can't be authenticated, send a "403 Forbidden" JSON response.
  * 
  * @param response Express Response object.
  * @param error AuthenticationError object.
  */
  async function sendAuthenticationError(response: Response, error: AuthenticationError): Promise<void> {
-    const authenticationError = {
+    const body: AuthenticationErrorResponse = {
         status: 401,
         error: {
+            code: error.code,
             message: error.message
         }
     }
 
-    response.status(401).json(authenticationError);
+    // The 401 Unauthorized status code states that WWW-Authenticate MUST be used.
+    // However, our authentication isn't one of the schemes maintained by IANA.
+    // Technically, even though the scheme "Cookie" doesn't exist, we are allowed to use whatever.
+    // User agent (e.g. browser) behaviour is undefined in this case.
+    response.setHeader("WWW-Authenticate", "Cookie");
+    response.status(401).json(body);
 }
 
 /**
@@ -145,14 +169,15 @@ async function sendSyntaxError(response: Response, error: SyntaxError): Promise<
  * @param error AuthorizationError object.
  */
 async function sendAuthorizationError(response: Response, error: ForbiddenError): Promise<void> {
-    const authorizationError = {
+    const body: ForbiddenErrorResponse = {
         status: 403,
         error: {
+            code: error.code,
             message: error.message
         }
     }
 
-    response.status(403).json(authorizationError);
+    response.status(403).json(body);
 }
 
 /**
@@ -162,14 +187,35 @@ async function sendAuthorizationError(response: Response, error: ForbiddenError)
  * @param error NotFoundError object.
  */
  async function sendNotFoundError(response: Response, error: NotFoundError): Promise<void> {
-    const notFoundError: NotFoundErrorResponse = {
+    const body: NotFoundErrorResponse = {
         status: 404,
         error: {
+            code: error.code,
             message: error.message
         }
     }
 
-    response.status(404).json(notFoundError);
+    response.status(404).json(body);
+}
+
+/**
+ * When the client requests to create/update a resource, but that resource is duplicated or can't be updated.
+ * Send a "409 Conflit" JSON response.
+ * 
+ * @param response Express Response object.
+ * @param error NotFoundError object.
+ */
+ async function sendConflitError(response: Response, error: ConflitError): Promise<void> {
+    const body: ConflitErrorResponse = {
+        status: 409,
+        error: {
+            code: error.code,
+            message: error.message,
+            fields: error.fields,
+        }
+    }
+
+    response.status(409).json(body);
 }
 
 /**
@@ -178,9 +224,11 @@ async function sendAuthorizationError(response: Response, error: ForbiddenError)
  * @param response Express Response object.
  */
 async function sendUnexpectedServerError(response: Response): Promise<void> {
-    const error: ServerErrorResponse = {
+    const body: ServerErrorResponse = {
         status: 500,
-        error: {}
+        error: {
+            message: "Unexpected error."
+        }
     }
-    response.status(500).json(error);
+    response.status(500).json(body);
 }

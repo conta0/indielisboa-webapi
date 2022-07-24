@@ -7,7 +7,7 @@ import { Request as ExpressRequest, Response as ExpressResponse } from "express"
 import { Role } from "../common/roles";
 import { Transaction } from "sequelize";
 import { getNowAfterSeconds, hasDateExpired, randomToken, validateData } from "../utils/crypto";
-import { AuthenticationError, ForbiddenError, NotFoundError } from "../common/errors";
+import { AuthenticationError, ErrorCode, ForbiddenError, NotFoundError } from "../common/errors";
 import { AuthenticationErrorResponse, ForbiddenErrorResponse, NotFoundErrorResponse } from "../common/responses";
 
 // Access token info. As the name implies, this token grants access to the application resources.
@@ -109,13 +109,15 @@ export class AuthController extends Controller {
     public async logout(
         @Request() request: ExpressRequest
     ): Promise<void> {
-        const refreshToken: string = request.cookies[refreshCookie];
+        const accessToken: string = request.cookies[accessCookie];
 
         try {
+            const payload: any = await verifyToken(accessToken, accessSecret, {ignoreExpiration: true});
+            const { userId } = payload; 
             await User.sequelize?.transaction(
                 {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
                 async (t) => {
-                    const user = await User.findOne({where: {token: refreshToken}, transaction: t});
+                    const user = await User.findOne({where: {userId: userId}, transaction: t});
     
                     // This token is invalid, so nothing to do. 
                     if (user == null) {
@@ -168,7 +170,7 @@ export class AuthController extends Controller {
         try {
             payload = await verifyToken(accessToken, accessSecret, {ignoreExpiration: true});
         } catch (error) {
-            return Promise.reject(new ForbiddenError("Invalid access token."))
+            return Promise.reject(new ForbiddenError({message: "Invalid access token.", code: ErrorCode.TOKEN_INVALID}));
         }
 
         const result = await User.sequelize?.transaction(
@@ -182,8 +184,10 @@ export class AuthController extends Controller {
                     return null;
                 }
 
-                // Extend expiration date
+                // Create new refresh token (token rotation)
+                const newRefreshToken = await randomToken();
                 const expiresDate: Date = getNowAfterSeconds(refreshExpires);
+                user.token = newRefreshToken;
                 user.tokenExpiresDate = expiresDate;
                 await user.save({transaction: t});
 
@@ -208,7 +212,7 @@ export class AuthController extends Controller {
         };
         
         await setAccessCookie(response, accessPayload);
-        await setRefreshCookie(response, refreshToken);
+        await setRefreshCookie(response, user.token!!);
     }
 }
 
@@ -223,9 +227,9 @@ interface LoginResult {
 }
 
 async function setAccessCookie(response: ExpressResponse, payload: JwtAccessFormat): Promise<void> {
-    const accessToken = await signPayload(payload, accessSecret, {expiresIn: accessExpires});
     // This isn't a typo. We allow the access token to exist for as long as the refresh token does.
     const maxAge = refreshExpires * 1000;
+    const accessToken = await signPayload(payload, accessSecret, {expiresIn: accessExpires});
     response.cookie(accessCookie, accessToken, {path: "/", secure: true, httpOnly: true, maxAge});
 }
 

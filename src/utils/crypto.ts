@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 
-const REFRESH_TOKEN_SIZE = 64;
+const TOKEN_SIZE = 32;
 const SALT_ROUNDS = 8;
 
 /**
@@ -28,7 +28,7 @@ export async function hashData(data: string | Buffer): Promise<string> {
  */
 export async function randomToken(): Promise<string> {
     return new Promise((resolve, reject) => {
-        crypto.randomBytes(REFRESH_TOKEN_SIZE, (err: any, buf: Buffer) => {
+        crypto.randomBytes(TOKEN_SIZE, (err: any, buf: Buffer) => {
             if (err) {
                 reject(err);
             } else {

@@ -1,4 +1,4 @@
-import { Stock } from "../products/stockModel";
+import { Transaction } from "sequelize";
 import { Role } from "./roles";
 
 /** 
@@ -13,19 +13,17 @@ export type Username = string;
  */
 export type Password = string;
 
+// Callback signature for the sequelize.transaction() function.
+export type SequelizeTransactionCallback<T> = (t: Transaction) => Promise<T>
+
 /**
+ * @pattern ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
  * @format uuid
  */
 export type UUID = string
 
 export const USERNAME_PATTERN = /^[A-Za-z][\w]{4,19}$/i
 export const PASSWORD_PATTERN = /^[\w]{8,19}$/i
-
-export enum ProductCategory {
-    TSHIRT = "tshirt",
-    BAG = "bag",
-    BOOK = "book",
-}
 
 export interface ProductModel {
     productId: UUID;

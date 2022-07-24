@@ -11,8 +11,8 @@ export class Stock extends Model<InferAttributes<Stock>, InferCreationAttributes
     declare locationId: ForeignKey<Location["locationId"]>;
     declare quantity: number;
 
-    declare getProduct: BelongsToGetAssociationMixin<Product>
-    declare getLocation: BelongsToGetAssociationMixin<Location>
+    declare getProduct: BelongsToGetAssociationMixin<Product>;
+    declare getLocation: BelongsToGetAssociationMixin<Location>;
 }
 
 registerModel(initStockModel);

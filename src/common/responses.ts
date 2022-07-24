@@ -1,4 +1,14 @@
 import { FieldErrors } from "tsoa"
+import { ErrorCode } from "./errors"
+
+interface BaseErrorResponse {
+    status: number,
+    error: {
+        code?: ErrorCode,
+        message?: string,
+        fields?: FieldErrors
+    }
+}
 
 /**
  * JSON response format for a "400 Bad Request" error.
@@ -18,12 +28,8 @@ import { FieldErrors } from "tsoa"
         }
     }
  */
-export interface BadRequestErrorResponse {
+export interface BadRequestErrorResponse extends BaseErrorResponse {
     status: 400,
-    error: {
-        message?: string,
-        fields?: FieldErrors
-    }
 }
 
 /**
@@ -34,11 +40,8 @@ export interface BadRequestErrorResponse {
  *  "error": {}
  * }
  */
-export interface AuthenticationErrorResponse {
+export interface AuthenticationErrorResponse extends BaseErrorResponse {
     status: 401,
-    error: {
-        [key: string]: string
-    }
 }
 
 /**
@@ -49,11 +52,8 @@ export interface AuthenticationErrorResponse {
  *  "error": {}
  * }
  */
-export interface ForbiddenErrorResponse {
+export interface ForbiddenErrorResponse extends BaseErrorResponse {
     status: 403,
-    error: {
-        [key: string]: string
-    }
 }
 
 /**
@@ -64,11 +64,20 @@ export interface ForbiddenErrorResponse {
  *  "error": {}
  * }
  */
-export interface NotFoundErrorResponse {
+export interface NotFoundErrorResponse extends BaseErrorResponse {
     status: 404,
-    error: {
-        [key: string]: string | undefined
-    }
+}
+
+/**
+ * JSON response format for a "409 Conflit" error.
+ * 
+ * @example {
+ *  "status": 409,
+ *  "error": {}
+ * }
+ */
+export interface ConflitErrorResponse extends BaseErrorResponse {
+    status: 409,
 }
 
 /**
@@ -79,34 +88,6 @@ export interface NotFoundErrorResponse {
  *  "error": {}
  * }
  */
-export interface ServerErrorResponse {
+export interface ServerErrorResponse extends BaseErrorResponse {
     status: 500,
-    error: {
-        [key: string]: string
-    }
-}
-
-/**
- * Represents the result of a service operation. On a successful operation, "data" must be either a single instance
- * or a collection of T (may be an empty collection).
- * 
- * If the operation fails, then "error" should describe the reason.
- * 
- * "data" and "error" are mutually exclusive. When one is present, the other is undefined.
- * 
- * @param data Represents an instance or a collection of T.
- * @param error Represents a service error.
- */
-export type ServiceResult<T> = ServiceSuccess<T> | ServiceError<T>
-
-interface ServiceSuccess<T> {
-    result: T | T[],
-    error?: never
-}
-
-interface ServiceError<T> {
-    result?: never,
-    error: {
-        message: string
-    }
 }

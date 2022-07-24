@@ -1,7 +1,7 @@
 {
     "exec": "ts-node src/server.ts",
     "watch": ["src"],
-    "ext": "ts",
+    "ext": "ts,json",
     "ignore": ["src/routes.ts", "src/swagger.json"],
     "events": {
         "restart": "tsoa spec-and-routes"
