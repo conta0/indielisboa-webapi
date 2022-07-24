@@ -1,12 +1,15 @@
 import { Association, BelongsToManyAddAssociationMixin, BelongsToManyGetAssociationsMixin, CreationOptional, DataTypes, FindAttributeOptions, FindOptions, HasManyGetAssociationsMixin, HasOneCreateAssociationMixin, HasOneGetAssociationMixin, Includeable, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, Transaction, UUIDV4 } from "sequelize";
 import { ProductModel, UUID } from "../common/model";
-import { Location } from "../locations/locationsService";
+import { Location } from "../locations/locationModel";
 import { registerAssociations, registerModel } from "../sequelize";
 import { Bag } from "./categories/bagModel";
 import { Book } from "./categories/bookModel";
 import { Tshirt } from "./categories/tshirtModel";
 import { Stock, STOCK_LOCATION_FK, STOCK_PRODUCT_FK } from "./stockModel";
-import { ProductCategory } from "./types";
+import { ProductCategory} from "./types";
+
+// Arbitrarily chosen the number 9999.99 as the maximum price of a product.
+const PRODUCT_PRICE: DataTypes.DecimalDataType = DataTypes.DECIMAL(6, 2);
 
 export const CATEGORY_FK = "productId"; 
 
@@ -104,7 +107,7 @@ async function initProductModel(sequelize: Sequelize): Promise<void> {
                 allowNull: false,
             },
             price: {
-                type: DataTypes.REAL,
+                type: PRODUCT_PRICE,
                 allowNull: false,
                 validate: {
                     min: 0

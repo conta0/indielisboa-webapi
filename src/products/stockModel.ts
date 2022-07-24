@@ -1,5 +1,5 @@
-import { BelongsToGetAssociationMixin, DataTypes, ForeignKey, InferAttributes, InferCreationAttributes, Model, Sequelize } from "sequelize";
-import { Location } from "../locations/locationsService";
+import { Association, BelongsToGetAssociationMixin, DataTypes, ForeignKey, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize } from "sequelize";
+import { Location } from "../locations/locationModel";
 import { registerAssociations, registerModel } from "../sequelize";
 import { Product } from "./productModel";
 
@@ -13,6 +13,15 @@ export class Stock extends Model<InferAttributes<Stock>, InferCreationAttributes
 
     declare getProduct: BelongsToGetAssociationMixin<Product>;
     declare getLocation: BelongsToGetAssociationMixin<Location>;
+
+    // Eager loaded properties
+    declare product?: NonAttribute<Product>;
+    declare location?: NonAttribute<Location>;
+
+    declare static associations: {
+        product: Association<Stock, Product>,
+        location: Association<Stock, Location> 
+    }
 }
 
 registerModel(initStockModel);
@@ -39,10 +48,12 @@ async function initStockModel(sequelize: Sequelize): Promise<void> {
 
 async function initStockAssociations(): Promise<void> {
     Stock.belongsTo(Product, {
-        foreignKey: STOCK_PRODUCT_FK
+        foreignKey: STOCK_PRODUCT_FK,
+        as: "product"
     });
 
     Stock.belongsTo(Location, {
-        foreignKey: STOCK_LOCATION_FK
+        foreignKey: STOCK_LOCATION_FK,
+        as: "location"
     });
 }

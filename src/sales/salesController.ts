@@ -75,7 +75,7 @@ export class SaleController extends Controller {
         if (startDate > endDate) {
             return Promise.reject(new BadRequestError({
                 message: "Bad dates.",
-                code: ErrorCode.REQ_DATA,
+                code: ErrorCode.REQ_FORMAT,
                 fields: {
                     "startDate": {
                         message: "startDate can't be greater than endDate",
@@ -148,7 +148,10 @@ export class SaleController extends Controller {
 
         // Sanity check. Don't allow duplicate values
         if (productIds.some((id, idx) => productIds.lastIndexOf(id) != idx)) {
-            return Promise.reject(new BadRequestError({message: "Duplicate productId not allowed."}));
+            return Promise.reject(new BadRequestError({
+                code: ErrorCode.REQ_FORMAT,
+                message: "Repeated productId not allowed."
+            }));
         }
         
         // Begin a Repeatable Read transaction.

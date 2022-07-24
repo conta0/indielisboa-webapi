@@ -1,5 +1,5 @@
 import { Association, BelongsToManyAddAssociationMixin, BelongsToManyGetAssociationsMixin, CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, UUIDV4 } from "sequelize";
-import { LocationModel, UUID } from "../common/model";
+import { UUID } from "../common/model";
 import { Product } from "../products/productModel";
 import { STOCK_LOCATION_FK, STOCK_PRODUCT_FK, Stock } from "../products/stockModel";
 import { registerAssociations, registerModel } from "../sequelize";
@@ -7,16 +7,20 @@ import { registerAssociations, registerModel } from "../sequelize";
 registerModel(initLocationModel);
 registerAssociations(initLocationAssociations);
 
-export class Location extends Model<InferAttributes<Location>, InferCreationAttributes<Location>> implements LocationModel {
+export class Location extends Model<InferAttributes<Location>, InferCreationAttributes<Location>> {
     declare locationId: CreationOptional<UUID>;
     declare address: string;
 
-    declare products?: NonAttribute<Product[]>
     declare getProducts: BelongsToManyGetAssociationsMixin<Product>;
-    declare addProduct: BelongsToManyAddAssociationMixin<Product, Product["productId"]>
+    declare addProduct: BelongsToManyAddAssociationMixin<Product, Product["productId"]>;
+
+    // Eager loaded properties
+    declare products?: NonAttribute<Product[]>;
+    declare stock?: NonAttribute<Stock[]>;
 
     declare static associations: {
-        products: Association<Location, Product>
+        products: Association<Location, Product>,
+        stock: Association<Location, Stock>
     }
 }
 
@@ -38,9 +42,9 @@ async function initLocationModel(sequelize: Sequelize): Promise<void> {
             },
         },
         {
-            timestamps: false,
             sequelize: sequelize,
             tableName: "location",
+            timestamps: false,
         }
     )
 }
@@ -53,5 +57,8 @@ async function initLocationAssociations(): Promise<void> {
         otherKey: STOCK_PRODUCT_FK
     });
 
-    Location.hasMany(Stock, {foreignKey: STOCK_LOCATION_FK});
+    Location.hasMany(Stock, {
+        as: "stock",
+        foreignKey: STOCK_LOCATION_FK
+    });
 }

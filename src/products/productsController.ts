@@ -162,7 +162,8 @@ export class ProductsController extends Controller {
     }
 
     /**
-     * Retrieves the protected information of a product.
+     * Retrieves the protected information of a product and its list of locations (stock).
+     * Each location of this list has its unique identifier and its address.
      * 
      * @summary Retrieve a product's protected information.
      * 
@@ -205,7 +206,7 @@ export class ProductsController extends Controller {
      @Response<BadRequestErrorResponse>(400, "Bad Request.")
      @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
      @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
-     @Response<ConflitErrorResponse>(409, "Bag already exists.")
+     @Response<ConflitErrorResponse>(409, "Can't create tshirt.")
      @Response<ServerErrorResponse>(500, "Internal Server Error.")
      public async createTshirt(
          @Body() body: CreateTshirtParams
@@ -225,7 +226,9 @@ export class ProductsController extends Controller {
             }
         } catch (err) {
             if (err instanceof UniqueConstraintError) {
-                return Promise.reject(new ConflitError({message: "The tshirt already exists. The combination of tags must be unique."}));
+                return Promise.reject(new ConflitError({
+                    message: "The tshirt already exists. The combination of tags must be unique."
+                }));
             }
             return Promise.reject(err);
         }
@@ -242,7 +245,7 @@ export class ProductsController extends Controller {
     @Response<BadRequestErrorResponse>(400, "Bad Request.")
     @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
     @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
-    @Response<ConflitErrorResponse>(409, "Bag already exists.")
+    @Response<ConflitErrorResponse>(409, "Can't create bag.")
     @Response<ServerErrorResponse>(500, "Internal Server Error.")
     public async createBag(
         @Body() body: CreateBagParams
@@ -262,7 +265,9 @@ export class ProductsController extends Controller {
             }
         } catch (err) {
             if (err instanceof UniqueConstraintError) {
-                return Promise.reject(new ConflitError({message: "The bag already exists. The combination of tags must be unique."}));
+                return Promise.reject(new ConflitError({
+                    message: "The bag already exists. The combination of tags must be unique."
+                }));
             }
             return Promise.reject(err);
         }
@@ -278,7 +283,7 @@ export class ProductsController extends Controller {
     @Response<BadRequestErrorResponse>(400, "Bad Request.")
     @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
     @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
-    @Response<ConflitErrorResponse>(409, "Book already exists.")
+    @Response<ConflitErrorResponse>(409, "Can't create book.")
     @Response<ServerErrorResponse>(500, "Internal Server Error.")
     public async createBook(
         @Body() body: CreateBookParams
@@ -298,7 +303,9 @@ export class ProductsController extends Controller {
             }
         } catch (err) {
             if (err instanceof UniqueConstraintError) {
-                return Promise.reject(new ConflitError({message: "The book already exists. The combination of tags must be unique."}));
+                return Promise.reject(new ConflitError({
+                    message: "The book already exists. The combination of tags must be unique."
+                }));
             }
             return Promise.reject(err);
         }
@@ -388,7 +395,7 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
     const include: Includeable = {
         required: false,
         association: Product.associations.stock,
-        attributes: {exclude: ["productId"]}
+        attributes: ["locationId", "quantity"]
     };
 
     const product = await Product.findByPk(productId, {include, transaction: transaction});

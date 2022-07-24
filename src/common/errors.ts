@@ -3,14 +3,26 @@ import { FieldErrors, ValidateError } from "tsoa";
 import { AuthenticationErrorResponse, BadRequestErrorResponse, ConflitErrorResponse, ForbiddenErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "./responses";
 
 export enum ErrorCode {
+    // Unspecified error.
     UNSPECIFIED = "unspecified",
+    
+    // Missing authentication token.
     TOKEN_MISSING = "token.missing",
+    
+    // Authentication token expired.
     TOKEN_EXPIRED = "token.expired",
+    
+    // Invalid authentication token.
     TOKEN_INVALID = "token.invalid",
-    PRIVILEGE = "privilege",
-    REQ_SYNTAX = "request.syntax",
+    
+    // Request doesn't have enough privileges for the given action.
+    PRIVILEGE = "request.privilege",
+    
+    // Request's format is invalid (e.g., the request expects a string and receives a number).
     REQ_FORMAT = "request.format",
-    REQ_DATA = "request.data",
+
+    // The Request can't be completed because of confliting data with an existing resource.
+    DUPLICATED = "resource.duplicated"
 }
 
 interface SimpleErrorConstructor {
@@ -111,7 +123,7 @@ async function sendSyntaxError(response: Response, error: SyntaxError): Promise<
     const body: BadRequestErrorResponse = {
         status: 400,
         error: {
-            code: ErrorCode.REQ_SYNTAX,
+            code: ErrorCode.REQ_FORMAT,
             message: "Expected a JSON request."
         }
     };

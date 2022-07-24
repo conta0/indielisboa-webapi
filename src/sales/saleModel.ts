@@ -1,6 +1,6 @@
 import { Association, BelongsToGetAssociationMixin, CreationOptional, DataTypes, HasManyGetAssociationsMixin, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, UUIDV4 } from "sequelize";
 import { UUID } from "../common/model";
-import { Location } from "../locations/locationsService";
+import { Location } from "../locations/locationModel";
 import { registerAssociations, registerModel } from "../sequelize";
 import { User } from "../users/usersService";
 import { SaleItem } from "./saleItemModel";
