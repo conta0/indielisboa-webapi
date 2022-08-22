@@ -1,5 +1,5 @@
 import { Association, BelongsToManyAddAssociationMixin, BelongsToManyGetAssociationsMixin, CreationOptional, DataTypes, FindOptions, HasManyGetAssociationsMixin, HasOneCreateAssociationMixin, HasOneGetAssociationMixin, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, Transaction, UUIDV4 } from "sequelize";
-import { ProductModel, UUID } from "../common/model";
+import { UUID } from "../common/types";
 import { Location } from "../locations/locationModel";
 import { registerAssociations, registerModel } from "../sequelize";
 import { Bag } from "./categories/bagModel";
@@ -13,7 +13,7 @@ const PRODUCT_PRICE: DataTypes.DecimalDataType = DataTypes.DECIMAL(6, 2);
 
 export const CATEGORY_FK = "productId"; 
 
-export class Product extends Model<InferAttributes<Product>, InferCreationAttributes<Product>> implements ProductModel {
+export class Product extends Model<InferAttributes<Product>, InferCreationAttributes<Product>> {
     declare productId: CreationOptional<UUID>;
     declare name: string;
     declare description: string;

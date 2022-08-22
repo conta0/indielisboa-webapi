@@ -1,8 +1,7 @@
 import { ForeignKeyConstraintError, InferCreationAttributes, Transaction, UniqueConstraintError } from "sequelize";
 import { Body, Controller, Get, Patch, Path, Post, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
-import { BadRequestError, ConflitError, ErrorCode, NotFoundError, SimpleError } from "../common/errors";
-import { UUID } from "../common/model";
-import { AuthenticationErrorResponse, ForbiddenErrorResponse, BadRequestErrorResponse, ServerErrorResponse, ConflitErrorResponse } from "../common/responses";
+import { BadRequestError, ConflitError, AppErrorCode, NotFoundError, AppError, AuthenticationErrorResponse, ForbiddenErrorResponse, ServerErrorResponse, BadRequestErrorResponse, ConflitErrorResponse } from "../common/errors";
+import { UUID } from "../common/types";
 import { Role } from "../common/roles";
 import { Stock } from "../products/stockModel";
 import { Price, ProductCategory } from "../products/types";
@@ -76,7 +75,7 @@ export class LocationsController extends Controller {
             if (err instanceof UniqueConstraintError) {
                 return Promise.reject(new ConflitError({
                     message: "Can't create location.",
-                    code: ErrorCode.DUPLICATED,
+                    code: AppErrorCode.DUPLICATED,
                     fields: {
                         "body.address": {
                             message: "Address not unique.",
@@ -162,7 +161,7 @@ export class LocationsController extends Controller {
         // Sanity check. Don't allow repeated productId.
         if (productIds.some((id, idx) => productIds.lastIndexOf(id) != idx)) {
             return Promise.reject(new BadRequestError({
-                code: ErrorCode.REQ_FORMAT,
+                code: AppErrorCode.REQ_FORMAT,
                 message: "Repeated productId not allowed."
             }));
         }
@@ -183,7 +182,7 @@ export class LocationsController extends Controller {
                     if (location == null) {
                         return new NotFoundError({
                             message: "Location doesn't exist.",
-                            code: ErrorCode.NOT_FOUND,
+                            code: AppErrorCode.NOT_FOUND,
                             fields: {
                                 "locationId": {
                                     message: "This locationId doesn't exist.",
@@ -198,7 +197,7 @@ export class LocationsController extends Controller {
             );
 
             // Location doesn't exist
-            if (result instanceof SimpleError) {
+            if (result instanceof AppError) {
                 return Promise.reject(result);
             }
 

@@ -1,10 +1,9 @@
-import { Body, Controller, Get, Patch, Path, Post, Query, Request, Res, Response, Route, Security, SuccessResponse, Tags, TsoaResponse } from "tsoa";
-import { BadRequestErrorResponse, NotFoundErrorResponse } from "../common/responses";
-import { Password, UserModel, Username, UUID } from "../common/model";
+import { Body, Controller, Get, Patch, Path, Post, Query, Request, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
+import { Password, Username, UUID } from "../common/types";
 import { AuthRequest, SecurityScheme } from "../security/authorization";
-import { User } from "./usersService";
+import { User } from "./userModel";
 import { UniqueConstraintError } from "sequelize";
-import { ConflitError } from "../common/errors";
+import { AppError, AppErrorCode, AuthenticationErrorResponse, BadRequestErrorResponse, ConflitError, ConflitErrorResponse, ForbiddenErrorResponse, NotFoundError, NotFoundErrorResponse, ServerErrorResponse } from "../common/errors";
 import { hasRolePrivileges, Role } from "../common/roles";
 import { hashData } from "../utils/crypto";
 
@@ -13,6 +12,7 @@ const TAG_USERS = "Users";
 @Route("users")
 export class UsersController extends Controller {
     /**
+     * Retrieve a list of user accounts. 
      * If a search criteria is applied, only users with an **exact** match will be returned.
      * 
      * @summary Retrieve a list of users. You may specify search parameters.
@@ -22,8 +22,8 @@ export class UsersController extends Controller {
     @Get()
     @Tags(TAG_USERS)
     @Security(SecurityScheme.JWT, [Role.ADMIN])
-    @SuccessResponse("200", "Successfully returned a list of users.")
-    @Response<BadRequestErrorResponse>("400", "Bad Request", {
+    @SuccessResponse(200, "Successfully returned a list of users.")
+    @Response<BadRequestErrorResponse>(400, "Bad Request", {
         status: 400,
         error: {
             fields: {
@@ -34,12 +34,17 @@ export class UsersController extends Controller {
             }
         }
     })
-    public async getUsers(
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
+    public async searchUsers(
         @Query() role?: Role,
-    ): Promise<GetUsersResult> {
+    ): Promise<SearchUsersResult> {
         const where = (role == undefined) ? {} : {role: role};
         const attributes = ["userId", "name", "role", "createdAt", "updatedAt"];
-        const userList: UserFullInfo[] = await User.findAll({ where, attributes });
+        
+        const result = await User.findAll({ where, attributes });
+        const userList: UserFullInfo[] = result.map(toUserFullInfo);
 
         return {
             status: 200,
@@ -55,12 +60,16 @@ export class UsersController extends Controller {
     @Get("sellers")
     @Tags(TAG_USERS)
     @Security(SecurityScheme.JWT, [Role.MANAGER])
-    @SuccessResponse("200", "Successfully returned a list of users with the 'seller' role.")
+    @SuccessResponse(200, "Successfully returned a list of users with the 'seller' role.")
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
     public async getSellers(
     ): Promise<GetSellersResult> {
         const where = {role: Role.SELLER};
         const attributes = ["userId", "name"];
-        const sellerList: UserProfile[] = await User.findAll({ where, attributes });
+        const result = await User.findAll({ where, attributes });
+        const sellerList: UserProfile[] = result.map(toUserProfile);
 
         return {
             status: 200,
@@ -69,30 +78,32 @@ export class UsersController extends Controller {
     }
 
     /**
-     * @summary Create a new user.
+     * @summary Create a user.
      */
     @Post()
     @Tags(TAG_USERS)
-    @SuccessResponse("201", "Successfully created a new user.")
+    @SuccessResponse(201, "Successfully created a user.")
+    @Response(400, "Bad Request")
+    @Response<ConflitErrorResponse>(409, "Can't create user.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
     public async createUser(
         @Body() body: CreateUserParams,
-    ): Promise<PostUsersResult> {
+    ): Promise<CreateUserResult> {
         const { username, password, name } = body;
         const hashedPw = await hashData(password);
 
         try {
             const result = await User.create({username, password: hashedPw, name, role: Role.BASIC})
-            const user: UserModel = result.toJSON();
             return {
                 status: 201, 
-                data: {
-                    userId: user.userId,
-                    name: user.name
-                }
+                data: result.userId,
             }
         } catch(error: any) {
             if (error instanceof UniqueConstraintError) {
-                return Promise.reject(new ConflitError({message: "User already exists.", fields: {
+                return Promise.reject(new ConflitError({
+                    code: AppErrorCode.DUPLICATED,
+                    message: "User already exists.", 
+                    fields: {
                     "body.username": {
                         message: "Duplicated username.",
                         value: username,
@@ -113,27 +124,41 @@ export class UsersController extends Controller {
     @Get("{userId}")
     @Tags(TAG_USERS)
     @Security(SecurityScheme.JWT, [Role.BASIC])
-    @SuccessResponse("200", "Successfully returned the user's profile.")
+    @SuccessResponse(201, "Successfully returned the user's profile.")
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<NotFoundErrorResponse>(404, "User not found.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
     public async getUserProfile(
         @Request() request: AuthRequest,
         @Path() userId: UUID,
-        @Res() notFoundResponse: TsoaResponse<404, NotFoundErrorResponse>
     ): Promise<GetUserProfileResult> {
+        const notFoundError = new NotFoundError({
+            code: AppErrorCode.NOT_FOUND,
+            message: "User not found.",
+            fields: {
+                "userId": {
+                    message: "This userId doesn't exist.",
+                    value: userId
+                }
+            }
+        });
+
         // Check if the request has sufficient privileges to view this user profile.
         if (request.auth.userId !== userId && !hasRolePrivileges(request.auth.role, Role.MANAGER)) {
-            return notFoundResponse(404, {status: 404, error: {}});
+            return Promise.reject(notFoundError);
         }
         
         const attributes = ["userId", "name"];
-        const profile: UserProfile | null = await User.findByPk(userId, {attributes});
+        const result = await User.findByPk(userId, {attributes});
 
-        if (profile == null) {
-            return notFoundResponse(404, {status: 404, error: {}});
+        if (result == null) {
+            return Promise.reject(notFoundError);
         }
 
         return {
             status: 200,
-            data: profile
+            data: toUserProfile(result)
         }
     }
 
@@ -147,8 +172,8 @@ export class UsersController extends Controller {
     @Patch("{userId}")
     @Tags(TAG_USERS)
     @Security(SecurityScheme.JWT, [Role.BASIC])
-    @SuccessResponse("200", "Successfully updated the user's profile.")
-    @Response<BadRequestErrorResponse>("400", "Bad Request", {
+    @SuccessResponse(200, "Successfully updated the user's profile.")
+    @Response<BadRequestErrorResponse>(400, "Bad Request", {
         status: 400,
         error: {
             fields: {
@@ -159,40 +184,53 @@ export class UsersController extends Controller {
             }
         }
     })
-    public async patchUserProfile(
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
+    public async updatehUserProfile(
         @Request() request: AuthRequest,
         @Path() userId: UUID,
         @Body() body: UpdateUserProfileParams,
-        @Res() notFoundResponse: TsoaResponse<404, NotFoundErrorResponse>
-    ): Promise<PatchUserProfileResult> {
+    ): Promise<UpdateUserProfileResult> {
+        const notFoundError = new NotFoundError({
+            code: AppErrorCode.NOT_FOUND,
+            message: "User not found.",
+            fields: {
+                "userId": {
+                    message: "This userId doesn't exist.",
+                    value: userId
+                }
+            }
+        });
+
         // Check if the request has sufficient privileges to edit this user profile.
         if (request.auth.userId !== userId && !hasRolePrivileges(request.auth.role, Role.ADMIN)) {
-            return notFoundResponse(404, {status: 404, error: {}});
+            return Promise.reject(notFoundError);
         }
 
         const { name } = body;
         const attributes = ["userId", "name"];
 
         try {
-            const result: UserModel = await User.sequelize?.transaction(async (transaction) => {
+            const result = await User.sequelize!!.transaction(async (transaction) => {
                 const user = await User.findByPk(userId, {attributes, transaction});
                 if (user == null) {
-                    return notFoundResponse(404, {status: 404, error: {}});
+                    return notFoundError;
                 }
                 user.name = name;
                 await user.save({transaction});
 
-                return user.toJSON();
+                return user
             });
-            
-            const profile: UserProfile = {
-                userId: result.userId,
-                name: result.name
+
+            // User not found
+            if (result instanceof AppError) {
+                return Promise.reject(result);
             }
 
             return {
                 status: 200,
-                data: profile
+                data: toUserProfile(result)
             }
 
         } catch (error) {
@@ -207,21 +245,34 @@ export class UsersController extends Controller {
     @Get("{userId}/fullinfo")
     @Tags(TAG_USERS)
     @Security(SecurityScheme.JWT, [Role.ADMIN])
-    @SuccessResponse("200", "Successfully returned the user's information.")
+    @SuccessResponse(200, "Successfully returned the user's information.")
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<NotFoundErrorResponse>(404, "User not found.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
     public async getUserFullInfo(
         @Path() userId: UUID,
-        @Res() notFoundResponse: TsoaResponse<404, NotFoundErrorResponse>
     ): Promise<GetUserFullInfoResult> {
         const attributes = ["userId", "name", "role", "createdAt", "updatedAt"];
-        const user: UserFullInfo | null = await User.findByPk(userId, {attributes});
+        const result = await User.findByPk(userId, {attributes});
 
-        if (user == null) {
-            return notFoundResponse(404, {status: 404, error: {}});
+        // User not found
+        if (result == null) {
+            return Promise.reject(new NotFoundError({
+                code: AppErrorCode.NOT_FOUND,
+                message: "User not found.",
+                fields: {
+                    "userId": {
+                        message: "This userId doesn't exist.",
+                        value: userId
+                    }
+                }
+            }));
         }
 
         return {
             status: 200,
-            data: user
+            data: toUserFullInfo(result)
         }
     }
 
@@ -233,8 +284,8 @@ export class UsersController extends Controller {
     @Patch("{userId}/fullinfo")
     @Tags(TAG_USERS)
     @Security(SecurityScheme.JWT, [Role.ADMIN])
-    @SuccessResponse("200", "Successfully updated the user's information.")
-    @Response<BadRequestErrorResponse>("400", "Bad Request", {
+    @SuccessResponse(200, "Successfully updated the user's information.")
+    @Response<BadRequestErrorResponse>(400, "Bad Request", {
         status: 400,
         error: {
             fields: {
@@ -245,50 +296,91 @@ export class UsersController extends Controller {
             }
         }
     })
-    @Response<NotFoundErrorResponse>("404", "User Not Found")
-    public async patchUserFullInfo(
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<NotFoundErrorResponse>(404, "User not found.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
+    public async updateUserFullInfo(
         @Request() request: AuthRequest,
         @Path() userId: UUID,
         @Body() body: UpdateUserFullInfoParams,
-        @Res() notFoundErrorResponse: TsoaResponse<404, NotFoundErrorResponse>
-    ): Promise<PatchUserFullInfoResult> {
+    ): Promise<UpdateUserFullInfoResult> {
         const { name, role } = body;
         const attributes = ["userId", "name", "role", "createdAt", "updatedAt"];
    
         try {    
-            const fullinfo = await User.sequelize?.transaction(async (transaction) => {
+            const result = await User.sequelize!!.transaction(async (transaction) => {
                 const user = await User.findByPk(userId, {attributes, transaction});
                 if (user == null) {
-                    return notFoundErrorResponse(404, {status: 404, error: {}});
+                    return new NotFoundError({
+                        code: AppErrorCode.NOT_FOUND,
+                        message: "User not found.",
+                        fields: {
+                            "userId": {
+                                message: "This userId doesn't exist.",
+                                value: userId
+                            }
+                        }
+                    });
                 }
                 
                 // Only changes roles for other users.
-                if (request.auth.userId !== userId) {
+                if (request.auth.userId !== userId && role != null) {
                     user.role = role;
                 }
-                user.name = name;
+                if (name != null) {
+                    user.name = name;
+                }
 
                 await user.save({transaction});
                 
-                const fullinfo: UserFullInfo = {
-                    userId: user.userId,
-                    name: user.name,
-                    role: user.role,
-                    createdAt: user.createdAt,
-                    updatedAt: user.updatedAt
-                }
-
-                return fullinfo;
+                return user;
             });
             
+            // User not found
+            if (result instanceof AppError) {
+                return Promise.reject(result);
+            }
+
             return {
                 status: 200,
-                data: fullinfo
+                data: toUserFullInfo(result)
             }
 
         } catch (error) {
             return Promise.reject(error);
         }
+    }
+}
+
+// ------------------------------ Helper Functions ------------------------------ //
+
+/**
+ * Takes a User and formats it into a UserFullInfo.
+ * 
+ * @param user The User object to be formatted.
+ * @returns The formatted UserFullInfo object. 
+ */
+function toUserFullInfo(user: User): UserFullInfo {
+    return {
+        userId: user.userId,
+        name: user.name,
+        role: user.role,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+    }
+}
+
+/**
+ * Takes a User and formats it into a UserProfile.
+ * 
+ * @param user The User object to be formatted.
+ * @returns The formatted UserProfile object. 
+ */
+ function toUserProfile(user: User): UserProfile {
+    return {
+        userId: user.userId,
+        name: user.name,
     }
 }
 
@@ -313,8 +405,8 @@ interface UpdateUserProfileParams {
 
 /** JSON request format to update an existing user's details. */
 interface UpdateUserFullInfoParams {
-    name: USERS_NAME,
-    role: Role
+    name?: USERS_NAME,
+    role?: Role
 }
 
 // ------------------------------ Response Formats ------------------------------ //
@@ -333,7 +425,7 @@ interface UserFullInfo {
 }
 
 /** JSON response format for the "GET /users" endpoint. */
-interface GetUsersResult {
+interface SearchUsersResult {
     status: 200,
     data: UserFullInfo[]
 }
@@ -357,19 +449,19 @@ interface GetUserFullInfoResult {
 }
 
 /** JSON response format for the "POST /users" endpoint. */
-interface PostUsersResult {
+interface CreateUserResult {
     status: 201,
-    data: UserProfile
+    data: UUID
 }
 
 /** JSON response format for the "PATCH /users/{userId}" endpoint. */
- interface PatchUserProfileResult {
+ interface UpdateUserProfileResult {
     status: 200,
     data?: UserProfile
 }
 
 /** JSON response format for the "PATCH /users/{userId}/fullinfo" endpoint. */
- interface PatchUserFullInfoResult {
+ interface UpdateUserFullInfoResult {
     status: 200,
     data?: UserFullInfo
 }

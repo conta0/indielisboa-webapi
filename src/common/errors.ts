@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import { FieldErrors, ValidateError } from "tsoa";
-import { AuthenticationErrorResponse, BadRequestErrorResponse, ConflitErrorResponse, ForbiddenErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "./responses";
 
-export enum ErrorCode {
+export enum AppErrorCode {
     // Unspecified error.
     UNSPECIFIED = "unspecified",
     
@@ -28,8 +27,14 @@ export enum ErrorCode {
     DUPLICATED = "resource.duplicated",
 }
 
-interface SimpleErrorConstructor {
-    code?: ErrorCode,
+/**
+ * @param code The app error.
+ * @param message A message describing the error.
+ * @param fields The fields that generated the error.
+ * Each field has a message describing the error for that field and may have the associated value. 
+ */
+interface AppErrorConstructor {
+    code?: AppErrorCode,
     message?: string,
     fields?: FieldErrors,
 }
@@ -38,25 +43,25 @@ interface SimpleErrorConstructor {
  * A wrapper class for the application custom errors.
  * We don't need a stack frame for this type of errors.
  */
-export class SimpleError {
+export class AppError {
     name?: string;
-    code?: ErrorCode;
+    code?: AppErrorCode;
     message?: string;
     fields?: FieldErrors;
 
-    constructor(params?: SimpleErrorConstructor) {
+    constructor(params?: AppErrorConstructor) {
         this.name = "SimpleError";
         this.message = params?.message;
-        this.code = params?.code || ErrorCode.UNSPECIFIED;
+        this.code = params?.code || AppErrorCode.UNSPECIFIED;
         this.fields = params?.fields;
     }
 }
 
-export class BadRequestError extends SimpleError {name = "BadRequestError"}
-export class AuthenticationError extends SimpleError {name = "AuthenticationError"};
-export class ForbiddenError extends SimpleError {name = "ForbiddenError"};
-export class NotFoundError extends SimpleError {name = "NotFoundError"};
-export class ConflitError extends SimpleError {name = "ConflitError"}
+export class BadRequestError extends AppError {name = "BadRequestError"}
+export class AuthenticationError extends AppError {name = "AuthenticationError"};
+export class ForbiddenError extends AppError {name = "ForbiddenError"};
+export class NotFoundError extends AppError {name = "NotFoundError"};
+export class ConflitError extends AppError {name = "ConflitError"}
 
 /**
  * Run this handler when an error is raised. For example, the server can't connect to the database. 
@@ -66,7 +71,7 @@ export class ConflitError extends SimpleError {name = "ConflitError"}
  * @param response Express Response object.
  * @param next Callback function. Will be ignored.
  */
-export function requestErrorHandler(error: Error | SimpleError, request: Request, response: Response, next: Function): void {
+export function requestErrorHandler(error: Error | AppError, request: Request, response: Response, next: Function): void {
     console.log("\x1b[31m%s\x1b[0m", `${error.name}: ${error.message}`);
     
     // Use reflection by looking at the error's constructor. typeof doesn't work here. 
@@ -109,7 +114,7 @@ async function sendValidationError(response: Response, error: ValidateError): Pr
     const body: BadRequestErrorResponse = {
         status: 400,
         error: {
-            code: ErrorCode.REQ_FORMAT,
+            code: AppErrorCode.REQ_FORMAT,
             fields: error.fields
         }
     };
@@ -126,7 +131,7 @@ async function sendSyntaxError(response: Response, error: SyntaxError): Promise<
     const body: BadRequestErrorResponse = {
         status: 400,
         error: {
-            code: ErrorCode.REQ_FORMAT,
+            code: AppErrorCode.REQ_FORMAT,
             message: "Expected a JSON request."
         }
     };
@@ -246,4 +251,45 @@ async function sendUnexpectedServerError(response: Response): Promise<void> {
         }
     }
     response.status(500).json(body);
+}
+
+// ------------------------------ Response Formats ------------------------------ //
+
+interface BaseErrorResponse {
+    status: number,
+    error: {
+        code?: AppErrorCode,
+        message?: string,
+        fields?: FieldErrors
+    }
+}
+
+/** JSON response format for a "400 Bad Request" error. */
+export interface BadRequestErrorResponse extends BaseErrorResponse {
+    status: 400,
+}
+
+/** JSON response format for a "401 Unauthorized" error. */
+export interface AuthenticationErrorResponse extends BaseErrorResponse {
+    status: 401,
+}
+
+/** JSON response format for a "403 Forbidden" error. */
+export interface ForbiddenErrorResponse extends BaseErrorResponse {
+    status: 403,
+}
+
+/** JSON response format for a "404 Not Found" error. */
+export interface NotFoundErrorResponse extends BaseErrorResponse {
+    status: 404,
+}
+
+/** JSON response format for a "409 Conflit" error. */
+export interface ConflitErrorResponse extends BaseErrorResponse {
+    status: 409,
+}
+
+/** JSON response format for a "500 Internal Server Error" error. */
+export interface ServerErrorResponse extends BaseErrorResponse {
+    status: 500,
 }

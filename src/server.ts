@@ -1,13 +1,14 @@
 import { app } from "./app";
 import * as config from "./config.json";
 import { initDatabase } from "./sequelize"
-import { User } from "./users/usersService";
+import { User } from "./users/userModel";
 
 import path from "path";
 import fs from "fs";
 import http from "http";
 import https from "https";
 import { Role } from "./common/roles";
+import { hashData } from "./utils/crypto";
 
 const PORT: number = Number(process.env.PORT) || config.server.port;
 const USE_HTTPS: boolean = config.server.https;
@@ -34,7 +35,8 @@ const PASSPHRASE: string = process.env.PASSPHRASE || config.server.passphrase;
             console.log("No admin configuration. Restart with valid configuration or create one directly.");
             console.log("Some resources will be unavailable without an admin account.");
         } else {
-            await User.create({username, password, name: "ADMIN", role: Role.ADMIN});
+            const hashedPw: string = await hashData(password);
+            await User.create({username, password: hashedPw, name: "ADMIN", role: Role.ADMIN});
             console.log("Created default admin account.");
         }
     }

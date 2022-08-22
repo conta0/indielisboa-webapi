@@ -1,5 +1,5 @@
 import { Association, BelongsToManyAddAssociationMixin, BelongsToManyGetAssociationsMixin, CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, UUIDV4 } from "sequelize";
-import { UUID } from "../common/model";
+import { UUID } from "../common/types";
 import { Product } from "../products/productModel";
 import { STOCK_LOCATION_FK, STOCK_PRODUCT_FK, Stock } from "../products/stockModel";
 import { registerAssociations, registerModel } from "../sequelize";

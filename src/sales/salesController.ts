@@ -1,13 +1,12 @@
 import { Body, Controller, Get, Post, Query, Request, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
-import { AuthenticationErrorResponse, ForbiddenErrorResponse, BadRequestErrorResponse, ServerErrorResponse, ConflitErrorResponse } from "../common/responses";
 import { Role } from "../common/roles";
 import { AuthRequest, SecurityScheme } from "../security/authorization";
 import { SaleItem } from "./saleItemModel";
 import { Sale, SaleStatus } from "./saleModel";
-import { UUID } from "../common/model";
+import { UUID } from "../common/types";
 import { Stock } from "../products/stockModel";
 import { InferAttributes, Op, Transaction } from "sequelize";
-import { BadRequestError, ConflitError, ErrorCode } from "../common/errors";
+import { BadRequestError, ConflitError, AppErrorCode, BadRequestErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, ServerErrorResponse, ConflitErrorResponse } from "../common/errors";
 
 const DEFAULT_START_DATE: Date = new Date(2022, 1, 1);
 const DEFAULT_END_DATE: Date = new Date(2023, 1, 1);
@@ -75,7 +74,7 @@ export class SaleController extends Controller {
         if (startDate > endDate) {
             return Promise.reject(new BadRequestError({
                 message: "Bad dates.",
-                code: ErrorCode.REQ_FORMAT,
+                code: AppErrorCode.REQ_FORMAT,
                 fields: {
                     "startDate": {
                         message: "startDate can't be greater than endDate",
@@ -149,7 +148,7 @@ export class SaleController extends Controller {
         // Sanity check. Don't allow duplicate values
         if (productIds.some((id, idx) => productIds.lastIndexOf(id) != idx)) {
             return Promise.reject(new BadRequestError({
-                code: ErrorCode.REQ_FORMAT,
+                code: AppErrorCode.REQ_FORMAT,
                 message: "Repeated productId not allowed."
             }));
         }

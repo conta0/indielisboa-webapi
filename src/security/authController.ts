@@ -1,14 +1,13 @@
 import { Body, Controller, Post, Request, Response, Route, SuccessResponse, Tags } from "tsoa";
 import * as jwt from "jsonwebtoken";
 import { jwt as config } from "../config.json";
-import { User } from "../users/usersService";
-import { Password, Username, UUID } from "../common/model";
+import { User } from "../users/userModel";
+import { Password, Username, UUID } from "../common/types";
 import { Request as ExpressRequest, Response as ExpressResponse } from "express";
 import { Role } from "../common/roles";
 import { Transaction } from "sequelize";
 import { getNowAfterSeconds, hasDateExpired, randomToken, validateData } from "../utils/crypto";
-import { AuthenticationError, ErrorCode, ForbiddenError, NotFoundError } from "../common/errors";
-import { AuthenticationErrorResponse, ForbiddenErrorResponse, NotFoundErrorResponse } from "../common/responses";
+import { AuthenticationError, AppErrorCode, ForbiddenError, NotFoundError, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse } from "../common/errors";
 
 // Access token info. As the name implies, this token grants access to the application resources.
 const accessSecret: string = process.env.ACCESS_SECRET || config.accessSecret;
@@ -170,7 +169,7 @@ export class AuthController extends Controller {
         try {
             payload = await verifyToken(accessToken, accessSecret, {ignoreExpiration: true});
         } catch (error) {
-            return Promise.reject(new ForbiddenError({message: "Invalid access token.", code: ErrorCode.TOKEN_INVALID}));
+            return Promise.reject(new ForbiddenError({message: "Invalid access token.", code: AppErrorCode.TOKEN_INVALID}));
         }
 
         const result = await User.sequelize?.transaction(

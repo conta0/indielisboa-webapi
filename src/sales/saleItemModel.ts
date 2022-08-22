@@ -1,5 +1,5 @@
 import { Association, BelongsToGetAssociationMixin, DataTypes, ForeignKey, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize } from "sequelize";
-import { UUID } from "../common/model";
+import { UUID } from "../common/types";
 import { Product } from "../products/productModel";
 import { Stock } from "../products/stockModel";
 import { registerAssociations, registerModel } from "../sequelize";

@@ -1,12 +1,12 @@
 import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, UUIDV4 } from "sequelize";
-import { Password, UserModel, Username } from "../common/model";
+import { Password, Username } from "../common/types";
 import { registerAssociations, registerModel } from "../sequelize";
 import { Role } from "../common/roles";
 
 registerModel(initUserModel);
 registerAssociations(initUserAssociations);
 
-export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> implements UserModel {
+export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
     declare userId: CreationOptional<string>;
     declare username: Username;
     declare password: Password;
@@ -43,8 +43,9 @@ async function initUserModel(sequelize: Sequelize): Promise<void> {
                 allowNull: false,
             },
             role: {
-                type: DataTypes.STRING,
+                type: DataTypes.ENUM,
                 allowNull: false,
+                values: Object.values(Role)
             },
             token: {
                 type: DataTypes.STRING,
@@ -56,7 +57,7 @@ async function initUserModel(sequelize: Sequelize): Promise<void> {
         },
         {
             sequelize: sequelize,
-            tableName: "User",
+            tableName: "user",
             timestamps: true,
         }
     )

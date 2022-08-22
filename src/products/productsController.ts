@@ -1,13 +1,12 @@
 import { Body, Controller, Get, Patch, Path, Post, Query, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
-import { SequelizeTransactionCallback, UUID } from "../common/model";
+import { SequelizeTransactionCallback, UUID } from "../common/types";
 import { Role } from "../common/roles";
 import { SecurityScheme } from "../security/authorization";
 import { TshirtColour, TshirtSize } from "./categories/tshirtModel";
 import { BagColour } from "./categories/bagModel";
 import { Product } from "./productModel";
 import { ForeignKeyConstraintError, Includeable, InferCreationAttributes, Model, Op, Order, OrderItem, Transaction, UniqueConstraintError, WhereOptions } from "sequelize";
-import { BadRequestError, ConflitError, ErrorCode, NotFoundError, SimpleError } from "../common/errors";
-import { AuthenticationErrorResponse, BadRequestErrorResponse, ConflitErrorResponse, ForbiddenErrorResponse, NotFoundErrorResponse, ServerErrorResponse } from "../common/responses";
+import { BadRequestError, ConflitError, AppErrorCode, NotFoundError, AppError, BadRequestErrorResponse, ServerErrorResponse, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, ConflitErrorResponse } from "../common/errors";
 import { ProductCategory } from "./types";
 import { Stock } from "./stockModel";
 
@@ -385,7 +384,7 @@ export class ProductsController extends Controller {
         // Sanity check. Don't allow repeated locationIds.
         if (locations.some((id, idx) => locations.lastIndexOf(id) != idx)) {
             return Promise.reject(new BadRequestError({
-                code: ErrorCode.REQ_FORMAT,
+                code: AppErrorCode.REQ_FORMAT,
                 message: "Repeated locationId not allowed."
             }));
         }
@@ -405,7 +404,7 @@ export class ProductsController extends Controller {
                     // Product not found
                     if (product == null) {
                         return new NotFoundError({
-                            code: ErrorCode.NOT_FOUND,
+                            code: AppErrorCode.NOT_FOUND,
                             message: "Product not found.",
                             fields: {
                                 "productId": {
@@ -421,7 +420,7 @@ export class ProductsController extends Controller {
             );
 
             // Reject errors
-            if (result instanceof SimpleError) {
+            if (result instanceof AppError) {
                 return Promise.reject(result);
             }
 
