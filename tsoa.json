@@ -11,7 +11,7 @@
         "jwt": {
           "type": "apiKey",
           "in": "cookie",
-          "name": "auth_token"
+          "name": "jwt_access"
         }
       }
     },

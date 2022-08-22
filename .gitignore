@@ -3,6 +3,11 @@ node_modules/
 build/
 sslcerts/
 
+# For Heroku
+npm-debug.log
+.DS_Store
+/*.env
+
 # These files are created by TSOA during build.
 src/routes.ts
 src/swagger.json

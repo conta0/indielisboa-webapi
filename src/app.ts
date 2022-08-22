@@ -8,7 +8,7 @@ export const app: Express = express();
 
 // OpenAPI specification
 import API_SPECIFICATION from "./swagger.json";
-const API_PATH = "/api/v1";
+const API_PATH = "/v1";
 API_SPECIFICATION.servers[0].url = API_PATH;
 
 // JSON middleware
@@ -32,12 +32,12 @@ if (TRUST_PROXY) {
 }
 
 // Documentation routes
-app.get("/api-docs/openapi.json", (request: Request, response: Response) => {
+app.get("/docs/swagger.json", (request: Request, response: Response) => {
     response.status(200);
     response.json(API_SPECIFICATION);
     response.end();
 });
-app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(API_SPECIFICATION));
+app.use("/docs", swaggerUI.serve, swaggerUI.setup(API_SPECIFICATION));
 
 // API Routes
 import { RegisterRoutes } from "./routes";
