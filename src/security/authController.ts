@@ -10,12 +10,12 @@ import { getNowAfterSeconds, hasDateExpired, randomToken, validateData } from ".
 import { AuthenticationError, AppErrorCode, ForbiddenError, NotFoundError, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse } from "../common/errors";
 
 // Access token info. As the name implies, this token grants access to the application resources.
-const accessSecret: string = process.env.ACCESS_SECRET || config.accessSecret;
-const accessCookie: string = process.env.ACCESS_COOKIE || config.accessCookie;
+const accessSecret: string = process.env.ACCESS_SECRET || config.ACCESS_SECRET;
+const accessCookie: string = config.accessCookie;
 const accessExpires: number = config.accessExpiresInSeconds;
 
 // Refresh token info. This token is used to refresh the access token.
-const refreshCookie: string = process.env.REFRESH_COOKIE || config.refreshCookie;
+const refreshCookie: string = config.refreshCookie;
 const refreshExpires: number = config.refreshExpiresInSeconds;
 
 /**
@@ -161,7 +161,10 @@ export class AuthController extends Controller {
         
         // Both tokens must exist
         if (accessToken == null || refreshToken == null) {
-            return Promise.reject(new AuthenticationError());
+            return Promise.reject(new AuthenticationError({
+                message: "Missing authentication token.",
+                code: AppErrorCode.TOKEN_MISSING
+            }));
         }
 
         // Verify if access token is valid
@@ -172,7 +175,7 @@ export class AuthController extends Controller {
             return Promise.reject(new ForbiddenError({message: "Invalid access token.", code: AppErrorCode.TOKEN_INVALID}));
         }
 
-        const result = await User.sequelize?.transaction(
+        const result = await User.sequelize!!.transaction(
             {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
             async (t) => {
                 const userId = (payload as JwtAccessFormat).userId;
@@ -196,7 +199,10 @@ export class AuthController extends Controller {
 
         // Refresh tokens has expired or is invalid
         if (result == null) {
-            return Promise.reject(new ForbiddenError());
+            return Promise.reject(new ForbiddenError({
+                message: "Invalid authentication tokens.",
+                code: AppErrorCode.TOKEN_INVALID
+            }));
         }
 
         // TSOA doesn't have an injectable Response object.
@@ -229,12 +235,12 @@ async function setAccessCookie(response: ExpressResponse, payload: JwtAccessForm
     // This isn't a typo. We allow the access token to exist for as long as the refresh token does.
     const maxAge = refreshExpires * 1000;
     const accessToken = await signPayload(payload, accessSecret, {expiresIn: accessExpires});
-    response.cookie(accessCookie, accessToken, {path: "/", secure: true, httpOnly: true, maxAge});
+    response.cookie(accessCookie, accessToken, {path: "/", secure: true, httpOnly: true, sameSite: "none", maxAge});
 }
 
 async function setRefreshCookie(response: ExpressResponse, token: string): Promise<void> {
     const maxAge = refreshExpires * 1000;
-    response.cookie(refreshCookie, token, {path: "/", secure: true, httpOnly: true, maxAge});
+    response.cookie(refreshCookie, token, {path: "/", secure: true, httpOnly: true, sameSite: "none",maxAge});
 }
 
 /**

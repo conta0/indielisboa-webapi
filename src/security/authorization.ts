@@ -1,12 +1,12 @@
-import { Request, response } from "express";
+import { Request } from "express";
 import * as jwt from "jsonwebtoken";
 import { AuthenticationError, AppErrorCode, ForbiddenError } from "../common/errors";
 import { hasRolePrivileges, Role } from "../common/roles";
 import { jwt as config } from "../config.json";
 import { JwtAccessFormat } from "./authController";
 
-const accessSecret: string = process.env.ACCESS_SECRET || config.accessSecret;
-const accessCookie: string = process.env.ACCESS_COOKIE || config.accessCookie;
+const accessSecret: string = process.env.ACCESS_SECRET || config.ACCESS_SECRET;
+const accessCookie: string = config.accessCookie;
 
 /**
  * Extends the Express Request object with user information.
@@ -57,7 +57,6 @@ export async function expressAuthentication(request: Request, securityName: stri
 async function jwtValidator(request: Request, scopes?: string[]) {
     const token = request.cookies[accessCookie];
     if (token == undefined) {
-        response.setHeader("WWW-Authenticate", "Cookie")
         return Promise.reject(new AuthenticationError({message: "Missing authentication token.", code: AppErrorCode.TOKEN_MISSING}));
     }
     

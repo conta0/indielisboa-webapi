@@ -1,5 +1,9 @@
-import { Sequelize } from "sequelize";
-import { sequelize as options } from "./config.json";
+import { Options, Sequelize } from "sequelize";
+import { sequelize as config } from "./config.json";
+
+// Database URL and options
+const URL: string = process.env.DATABASE_URL || config.DATABASE_URL;
+const options: Options = config.options;
 
 /**
  * Initializes the Model's associations.
@@ -38,7 +42,7 @@ export function registerAssociations(init: AssociationsInit) {
  */
 export async function initDatabase(): Promise<void> {
     console.log("Initializing DB connection...");
-    const sequelize = await getSequelizeInstace();
+    const sequelize = await createSequelizeInstace();
     
     try {
         await sequelize.authenticate();
@@ -53,21 +57,15 @@ export async function initDatabase(): Promise<void> {
     await sequelize.sync();
 }
 
-async function getSequelizeInstace(): Promise<Sequelize> {
-    const URL = process.env.DATABASE_URL;
-    
-    if (URL != null) {
-        console.log("Using environment variable 'DATABASE_URL'.");
-        return new Sequelize(URL, {dialectOptions: options.dialectOptions});
-    }
-
-    if (options.dialect) {
-        console.log("Using config.json file values.");
-        return new Sequelize(options as any);
-    }
-
-    return Promise.reject(
-        "No connection configuration. "+
-        "Set the 'DATABASE_URL' enviroment variable or use the 'config.json' file."
-    )
+/**
+ * @returns A Sequelize instance.
+ */
+async function createSequelizeInstace(): Promise<Sequelize> {
+    if (URL == null || URL == "") {
+        return Promise.reject(
+            "No connection configuration. "+
+            "Set the 'DATABASE_URL' enviroment variable or use the 'config.json' file."
+        )    
+    }   
+    return new Sequelize(URL, options);
 }

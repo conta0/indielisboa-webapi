@@ -10,11 +10,11 @@ import https from "https";
 import { Role } from "./common/roles";
 import { hashData } from "./utils/crypto";
 
-const PORT: number = Number(process.env.PORT) || config.server.port;
+const PORT: number = Number(process.env.PORT) || config.server.PORT;
 const USE_HTTPS: boolean = config.server.https;
 const CERT_PATH: string = path.join(__dirname, ".", "sslcerts", "cert.pem");
 const KEY_PATH: string = path.join(__dirname, ".", "sslcerts", "key.pem");
-const PASSPHRASE: string = process.env.PASSPHRASE || config.server.passphrase;
+const PASSPHRASE: string = process.env.CERT_PASSPHRASE || config.server.CERT_PASSPHRASE;
 
 // Workaround solution to enable the use of async/await.
 // async/await can't be used at top-level without changing the configuration file
@@ -28,8 +28,8 @@ const PASSPHRASE: string = process.env.PASSPHRASE || config.server.passphrase;
     const user = await User.findOne({where: {role: Role.ADMIN}});
     if (user == null) {
         console.log("No admin account detected.");
-        const username: string = process.env.ADMIN_USER || config.database.adminUsername;
-        const password: string = process.env.ADMIN_PW || config.database.adminPassword;
+        const username: string = process.env.ADMIN_USER || config.database.ADMIN_USER;
+        const password: string = process.env.ADMIN_PW || config.database.ADMIN_PW;
 
         if (username == null || password == null) {
             console.log("No admin configuration. Restart with valid configuration or create one directly.");
@@ -54,11 +54,4 @@ const PASSPHRASE: string = process.env.PASSPHRASE || config.server.passphrase;
     } else {
         http.createServer(app).listen(PORT, () => { console.log(`HTTP Server started on port ${PORT}.`); });
     }
-})().catch(console.log);
-
-export async function delay(mills: number) {
-    return new Promise<void>((resolve, reject) => {
-        console.log(`delay for ${mills} millis`);
-        setTimeout(() => {console.log("delay done"); resolve()}, mills);
-    })
-}
+})().catch(console.error);

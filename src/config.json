@@ -1,31 +1,29 @@
 {
     "sequelize": {
-        "database": "",
-        "username": "",
-        "password": "",
-        "host": "",
-        "port": "",
-        "dialect": "",
-        "dialectOptions": {
-            "ssl": {
-                "require": true,
-                "rejectUnauthorized": false
+        "DATABASE_URL": "",
+        "options": {
+            "dialectOptions": {
+                "ssl": {
+                    "require": true,
+                    "rejectUnauthorized": false
+                }
             }
         }
     },
     "server": {
-        "port": 443,
+        "PORT": 443,
+        "ORIGINS": [],
+        "CERT_PASSPHRASE": "",
         "https": false,
-        "passphrase": "",
         "trustProxy": true
     },
     "database": {
-        "adminUsername": "admin",
-        "adminPassword": "password"
+        "ADMIN_USER": "admin",
+        "ADMIN_PW": "password"
     },
     "jwt": {
+        "ACCESS_SECRET": "change this",
         "accessCookie": "jwt_access",
-        "accessSecret": "change this",
         "accessExpiresInSeconds": 1200,
         "refreshCookie": "jwt_refresh",
         "refreshExpiresInSeconds": 604800
