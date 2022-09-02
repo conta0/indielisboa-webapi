@@ -1,13 +1,14 @@
 import { Body, Controller, Post, Request, Response, Route, SuccessResponse, Tags } from "tsoa";
 import * as jwt from "jsonwebtoken";
-import { jwt as config } from "../config.json";
+import { security as config } from "../config.json";
 import { User } from "../users/userModel";
-import { Password, Username, UUID } from "../common/types";
+import { Fullname, Password, Username, UUID } from "../common/types";
 import { Request as ExpressRequest, Response as ExpressResponse } from "express";
 import { Role } from "../common/roles";
 import { Transaction } from "sequelize";
 import { getNowAfterSeconds, hasDateExpired, randomToken, validateData } from "../utils/crypto";
-import { AuthenticationError, AppErrorCode, ForbiddenError, NotFoundError, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse } from "../common/errors";
+import { AuthenticationError, AppErrorCode, ForbiddenError, NotFoundError, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, BadRequestError, AppError } from "../common/errors";
+import { OAuth2Client } from "google-auth-library";
 
 // Access token info. As the name implies, this token grants access to the application resources.
 const accessSecret: string = process.env.ACCESS_SECRET || config.ACCESS_SECRET;
@@ -17,6 +18,10 @@ const accessExpires: number = config.accessExpiresInSeconds;
 // Refresh token info. This token is used to refresh the access token.
 const refreshCookie: string = config.refreshCookie;
 const refreshExpires: number = config.refreshExpiresInSeconds;
+
+// Google ID client
+const GOOGLE_ID: string = process.env.GOOGLE_ID || config.GOOGLE_ID;
+const googleClient = new OAuth2Client(GOOGLE_ID);
 
 /**
  * The JSON Web Token format for the application access token.
@@ -28,6 +33,7 @@ const refreshExpires: number = config.refreshExpiresInSeconds;
  export interface JwtAccessFormat {
     userId: UUID,
     role: Role,
+    name: Fullname,
     locationId?: UUID,
 }
 
@@ -36,7 +42,7 @@ const TAG_AUTH = "Auth";
 export class AuthController extends Controller {
     /**
      * Login with an user account to access protected resources.
-     * A pari of JSON Web Tokens will be set as cookies for application access and authentication.
+     * A pair of JSON Web Tokens will be set as cookies for application access and authentication.
      * 
      * @summary Login an user account.
      */
@@ -44,21 +50,24 @@ export class AuthController extends Controller {
     @Tags(TAG_AUTH)
     @SuccessResponse(200, "Login successfull.")
     @Response<NotFoundErrorResponse>(404, "User Not Found.")
-    public async login(
+    public async loginBasic(
         @Request() request: ExpressRequest,
-        @Body() body: LoginParams,
+        @Body() body: LoginBasicParams,
     ): Promise<LoginResult> {
         const { username, password } = body;
         
         // Using a Repeateable Read transaction because we want to ensure the user info doesn't change.
-        const result = await User.sequelize?.transaction(
+        const result = await User.sequelize!!.transaction(
             {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
             async (t) => {
                 const user = await User.findOne({where: {username: username}, transaction: t});
                 
                 // Check if user exists and password matches
-                if (user == null || !(await validateData(password, user.password))) {
-                    return null;
+                if (user == null || !(await validateData(password, user.password || ""))) {
+                    return new NotFoundError({
+                        code: AppErrorCode.NOT_FOUND,
+                        message: "User not found",
+                    });
                 }
 
                 // Create refresh token and expiration Date and save it
@@ -73,27 +82,92 @@ export class AuthController extends Controller {
         );
         
         // User not found or password mismatch. However, we don't want to inform which (extra security).
-        if (result == null) {
-            return Promise.reject(new NotFoundError());
+        if (result instanceof AppError) {
+            return Promise.reject(result);
         }
         
-        // TSOA doesn't have an injectable Response object.
-        // We can circumvent this by using Express.Request to access the associated Response object.
-        const response = request.res as ExpressResponse;
-        
-        // Generate new access token and set cookies
-        const user = result.toJSON();
-        const accessPayload: JwtAccessFormat = {
-            userId: user.userId,
-            role: user.role
-        };
-
-        await setAccessCookie(response, accessPayload);
-        await setRefreshCookie(response, user.token!!);
-
+        const token = await makePayloadAndSetCookies(request, result);
         return {
             status: 200,
-            data: user.userId
+            data: token
+        }
+    }
+
+    /**
+     * Login with a Google ID.
+     * A pair of JSON Web Tokens will be set as cookies for application access and authentication.
+     * The request must follow the authentication flow defined by 
+     * [Google](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)
+     * 
+     * @summary Login an user account.
+     */
+    @Post("login/google")
+    @Tags(TAG_AUTH)
+    @SuccessResponse(200, "Login successfull.")
+    public async loginGoogle(
+        @Request() request: ExpressRequest,
+        @Body() body: LoginGoogleParams,
+    ): Promise<LoginResult> {
+        const cookieToken = request.cookies["g_csrf_token"];
+        const bodyToken = body.g_csrf_token;
+        const credential = body.credential;
+        
+        // Verify Google's double submit cookie
+        if (cookieToken == null) {
+            return Promise.reject(new BadRequestError({message: "Google ID: No CSRF token in cookie."}));
+        }
+
+        if (bodyToken == null) {
+            return Promise.reject(new BadRequestError({message: "Google ID: No CSRF token in body."}));    
+        }
+
+        if (cookieToken !== bodyToken) {
+            return Promise.reject(new BadRequestError({message: "Google ID: Failed to verify double submit cookie."}));        
+        }
+
+        // Verify Google ID
+        let payload;
+        try {
+            const ticket = await googleClient.verifyIdToken({
+                idToken: credential,
+                audience: GOOGLE_ID,
+            });
+            payload = ticket.getPayload();
+        } catch (err) {
+            console.log(err);
+            return Promise.reject(new ForbiddenError());
+        }
+        
+        // User data
+        const email = payload?.email!!;
+        const name = payload?.name!!;
+
+        // Using a Repeateable Read transaction because we want to ensure the user info doesn't change.
+        const user = await User.sequelize!!.transaction(
+            {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
+            async (t) => {
+                let user = await User.findOne({where: {email: email}, transaction: t});
+
+                // User not found, create a new account.
+                if (user == null) {
+                    user = await User.create({email: email, name: name, role: Role.BASIC}, {transaction: t});
+                }
+
+                // Create refresh token and expiration Date and save it
+                const refreshToken = await randomToken();
+                const expiresDate: Date = getNowAfterSeconds(refreshExpires);
+                user.token = refreshToken;
+                user.tokenExpiresDate = expiresDate;
+                await user.save({transaction: t});
+
+                return user;
+            }
+        );
+        
+        const token = await makePayloadAndSetCookies(request, user);
+        return {
+            status: 200,
+            data: token
         }
     }
 
@@ -113,7 +187,7 @@ export class AuthController extends Controller {
         try {
             const payload: any = await verifyToken(accessToken, accessSecret, {ignoreExpiration: true});
             const { userId } = payload; 
-            await User.sequelize?.transaction(
+            await User.sequelize!!.transaction(
                 {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
                 async (t) => {
                     const user = await User.findOne({where: {userId: userId}, transaction: t});
@@ -132,7 +206,7 @@ export class AuthController extends Controller {
         } catch(err) {
             // We really don't care about errors here, since we're trying to logout the user.
             // Even if there was a DB error, it doesn't matter to the user.
-            ;
+            console.log(err);
         }
         
         // Clear cookies.
@@ -183,7 +257,10 @@ export class AuthController extends Controller {
 
                 // Check if user exists with that token and if the token is still valid
                 if (user == null || hasDateExpired(user.tokenExpiresDate)) {
-                    return null;
+                    return new ForbiddenError({
+                        message: "Invalid authentication tokens.",
+                        code: AppErrorCode.TOKEN_INVALID
+                    });
                 }
 
                 // Create new refresh token (token rotation)
@@ -198,49 +275,42 @@ export class AuthController extends Controller {
         );
 
         // Refresh tokens has expired or is invalid
-        if (result == null) {
-            return Promise.reject(new ForbiddenError({
-                message: "Invalid authentication tokens.",
-                code: AppErrorCode.TOKEN_INVALID
-            }));
+        if (result instanceof AppError) {
+            return Promise.reject(result);
         }
 
-        // TSOA doesn't have an injectable Response object.
-        // We can circumvent this by using Express.Request to access the associated Response object.
-        const response = request.res as ExpressResponse;
-        
-        // Generate new tokens and set cookies
-        const user = result.toJSON();
-        const accessPayload: JwtAccessFormat = {
-            userId: user.userId,
-            role: user.role
-        };
-        
-        await setAccessCookie(response, accessPayload);
-        await setRefreshCookie(response, user.token!!);
+        await makePayloadAndSetCookies(request, result);
     }
 }
 
-interface LoginParams {
-    username: Username,
-    password: Password,
-}
+// ------------------------------ Helper Functions ------------------------------ //
 
-interface LoginResult {
-    status: 200,
-    data: UUID
-}
-
-async function setAccessCookie(response: ExpressResponse, payload: JwtAccessFormat): Promise<void> {
-    // This isn't a typo. We allow the access token to exist for as long as the refresh token does.
+/**
+ * Creates the access token and sets the respective cookies. 
+ * 
+ * @param request The Express Request object.
+ * @param user The user account.
+ * @returns A promise to be either resolved with the access token payload or rejected with an Error.
+ */
+async function makePayloadAndSetCookies(request: ExpressRequest, user: User): Promise<JwtAccessFormat> {
+    // TSOA doesn't have an injectable Response object.
+    // We can circumvent this by using Express.Request to access the associated Response object.
+    const response = request.res as ExpressResponse;
+    
+    // Generate new tokens and set cookies
+    const accessPayload: JwtAccessFormat = {
+        userId: user.userId,
+        name: user.name,
+        role: user.role
+    };
+    
+    // Allow the access token to exist for as long as the refresh token does.
     const maxAge = refreshExpires * 1000;
-    const accessToken = await signPayload(payload, accessSecret, {expiresIn: accessExpires});
+    const accessToken = await signPayload(accessPayload, accessSecret, {expiresIn: accessExpires});
     response.cookie(accessCookie, accessToken, {path: "/", secure: true, httpOnly: true, sameSite: "none", maxAge});
-}
+    response.cookie(refreshCookie, user.token, {path: "/", secure: true, httpOnly: true, sameSite: "none", maxAge});
 
-async function setRefreshCookie(response: ExpressResponse, token: string): Promise<void> {
-    const maxAge = refreshExpires * 1000;
-    response.cookie(refreshCookie, token, {path: "/", secure: true, httpOnly: true, sameSite: "none",maxAge});
+    return accessPayload;
 }
 
 /**
@@ -289,4 +359,24 @@ async function verifyToken(
             }
         })
     })
+}
+
+// ------------------------------ Request Formats ------------------------------ //
+
+interface LoginBasicParams {
+    username: Username,
+    password: Password,
+}
+
+// Google's POST Request in URL encoded
+interface LoginGoogleParams {
+    credential: string,
+    g_csrf_token: string
+}
+
+// ------------------------------ Response Formats ------------------------------ //
+
+interface LoginResult {
+    status: 200,
+    data: JwtAccessFormat
 }

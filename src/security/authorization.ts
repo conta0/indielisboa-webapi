@@ -2,7 +2,7 @@ import { Request } from "express";
 import * as jwt from "jsonwebtoken";
 import { AuthenticationError, AppErrorCode, ForbiddenError } from "../common/errors";
 import { hasRolePrivileges, Role } from "../common/roles";
-import { jwt as config } from "../config.json";
+import { security as config } from "../config.json";
 import { JwtAccessFormat } from "./authController";
 
 const accessSecret: string = process.env.ACCESS_SECRET || config.ACCESS_SECRET;
@@ -57,16 +57,25 @@ export async function expressAuthentication(request: Request, securityName: stri
 async function jwtValidator(request: Request, scopes?: string[]) {
     const token = request.cookies[accessCookie];
     if (token == undefined) {
-        return Promise.reject(new AuthenticationError({message: "Missing authentication token.", code: AppErrorCode.TOKEN_MISSING}));
+        return Promise.reject(new AuthenticationError({
+            message: "Missing authentication token.",
+            code: AppErrorCode.TOKEN_MISSING
+        }));
     }
     
     // Verify token.
     jwt.verify(token, accessSecret, function(err: any, decoded: any) {
         if (err) {
             if (err instanceof jwt.TokenExpiredError) {
-                throw new AuthenticationError({message: "Expired access token.", code: AppErrorCode.TOKEN_EXPIRED});
+                throw new AuthenticationError({
+                    message: "Expired access token.",
+                    code: AppErrorCode.TOKEN_EXPIRED
+                });
             }
-            throw new ForbiddenError({message: "Invalid access token.", code: AppErrorCode.TOKEN_INVALID});
+            throw new ForbiddenError({
+                message: "Invalid access token.",
+                code: AppErrorCode.TOKEN_INVALID
+            });
         }
 
         const { userId, role } = decoded as JwtAccessFormat
@@ -78,12 +87,15 @@ async function jwtValidator(request: Request, scopes?: string[]) {
         }
 
         // No scope specified. Nothing to do.
-        if (scopes == undefined || scopes == []) return;
+        if (scopes == undefined || scopes.length == 0) return;
 
         // Check if JWT contains target role.
         if (!hasRolePrivileges(role, scopes[0] as Role)) {
             console.log(`auth error: Got ${role} but expected ${scopes[0]}.`);
-            throw new ForbiddenError({message: "Not enough privileges for this action.", code: AppErrorCode.PRIVILEGE});
+            throw new ForbiddenError({
+                message: "Not enough privileges for this action.",
+                code: AppErrorCode.PRIVILEGE
+            });
         }
     });
 }

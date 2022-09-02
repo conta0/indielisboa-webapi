@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Patch, Path, Post, Query, Request, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
-import { Password, Username, UUID } from "../common/types";
+import { Fullname, Password, Username, UUID } from "../common/types";
 import { AuthRequest, SecurityScheme } from "../security/authorization";
 import { User } from "./userModel";
 import { UniqueConstraintError } from "sequelize";
@@ -384,28 +384,23 @@ function toUserFullInfo(user: User): UserFullInfo {
     }
 }
 
-// ------------------------------ User Specific Types ------------------------------ //
-
-/** @example "Alice" */
-type USERS_NAME = string;
-
 // ------------------------------ Request Formats ------------------------------ //
 
 /** JSON request format to create a new user. */
 interface CreateUserParams {
     username: Username,
     password: Password,
-    name: USERS_NAME,
+    name: Fullname,
 }
 
 /** JSON request format to update an existing user. */
 interface UpdateUserProfileParams {
-    name: USERS_NAME,
+    name: Fullname,
 }
 
 /** JSON request format to update an existing user's details. */
 interface UpdateUserFullInfoParams {
-    name?: USERS_NAME,
+    name?: Fullname,
     role?: Role
 }
 
@@ -413,12 +408,12 @@ interface UpdateUserFullInfoParams {
 
 interface UserProfile {
     userId: UUID;
-    name: USERS_NAME;
+    name: Fullname;
 }
 
 interface UserFullInfo {
     userId: UUID;
-    name: USERS_NAME;
+    name: Fullname;
     role: Role;
     createdAt: Date;
     updatedAt: Date;

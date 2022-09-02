@@ -1,5 +1,5 @@
 import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, UUIDV4 } from "sequelize";
-import { Password, Username } from "../common/types";
+import { Email, Password, Username } from "../common/types";
 import { registerAssociations, registerModel } from "../sequelize";
 import { Role } from "../common/roles";
 
@@ -8,9 +8,10 @@ registerAssociations(initUserAssociations);
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
     declare userId: CreationOptional<string>;
-    declare username: Username;
-    declare password: Password;
+    declare username: Username | null;
+    declare password: Password | null;
     declare name: string;
+    declare email: Email | null;
     declare role: Role;
     declare createdAt: NonAttribute<Date>;
     declare updatedAt: NonAttribute<Date>;
@@ -32,15 +33,23 @@ async function initUserModel(sequelize: Sequelize): Promise<void> {
             username: {
                 type: DataTypes.STRING,
                 unique: true,
-                allowNull: false,
+                allowNull: true,
             },
             password: {
                 type: DataTypes.STRING,
-                allowNull: false,
+                allowNull: true,
             },
             name: {
                 type: DataTypes.STRING,
                 allowNull: false,
+            },
+            email: {
+                type: DataTypes.STRING,
+                unique: true,
+                allowNull: true,
+                validate: {
+                    isEmail: true,
+                }
             },
             role: {
                 type: DataTypes.ENUM,

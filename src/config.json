@@ -18,14 +18,15 @@
         "trustProxy": true
     },
     "database": {
-        "ADMIN_USER": "admin",
-        "ADMIN_PW": "password"
+        "ADMIN_USER": "",
+        "ADMIN_PW": ""
     },
-    "jwt": {
+    "security": {
         "ACCESS_SECRET": "change this",
         "accessCookie": "jwt_access",
         "accessExpiresInSeconds": 1200,
         "refreshCookie": "jwt_refresh",
-        "refreshExpiresInSeconds": 604800
+        "refreshExpiresInSeconds": 604800,
+        "GOOGLE_ID": ""
     }
 }

@@ -31,7 +31,7 @@ const PASSPHRASE: string = process.env.CERT_PASSPHRASE || config.server.CERT_PAS
         const username: string = process.env.ADMIN_USER || config.database.ADMIN_USER;
         const password: string = process.env.ADMIN_PW || config.database.ADMIN_PW;
 
-        if (username == null || password == null) {
+        if (username == null || password == null || username.length == 0 || password.length == 0) {
             console.log("No admin configuration. Restart with valid configuration or create one directly.");
             console.log("Some resources will be unavailable without an admin account.");
         } else {
