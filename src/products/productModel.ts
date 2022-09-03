@@ -8,9 +8,6 @@ import { Tshirt } from "./categories/tshirtModel";
 import { Stock, STOCK_LOCATION_FK, STOCK_PRODUCT_FK } from "./stockModel";
 import { ProductCategory} from "./types";
 
-// Arbitrarily chosen the number 9999.99 as the maximum price of a product.
-const PRODUCT_PRICE: DataTypes.DecimalDataType = DataTypes.DECIMAL(6, 2);
-
 export const CATEGORY_FK = "productId"; 
 
 export class Product extends Model<InferAttributes<Product>, InferCreationAttributes<Product>> {
@@ -19,7 +16,6 @@ export class Product extends Model<InferAttributes<Product>, InferCreationAttrib
     declare description: string;
     declare price: number;
     declare category: ProductCategory;
-    declare active: CreationOptional<boolean>;
     declare createdAt: NonAttribute<Date>;
     declare updatedAt: NonAttribute<Date>;
 
@@ -112,8 +108,9 @@ async function initProductModel(sequelize: Sequelize): Promise<void> {
                     notEmpty: true,
                 }
             },
+            // Store price in cents.
             price: {
-                type: PRODUCT_PRICE,
+                type: DataTypes.INTEGER,
                 allowNull: false,
                 validate: {
                     min: 0
@@ -123,11 +120,6 @@ async function initProductModel(sequelize: Sequelize): Promise<void> {
                 type: DataTypes.ENUM,
                 allowNull: false,
                 values: Object.values(ProductCategory)
-            },
-            active: {
-                type: DataTypes.BOOLEAN,
-                allowNull: false,
-                defaultValue: true
             }
         },
         {

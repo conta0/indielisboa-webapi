@@ -7,7 +7,7 @@ import { BagColour } from "./categories/bagModel";
 import { Product } from "./productModel";
 import { ForeignKeyConstraintError, Includeable, InferCreationAttributes, Model, Op, Order, OrderItem, Transaction, UniqueConstraintError, WhereOptions } from "sequelize";
 import { BadRequestError, ConflitError, AppErrorCode, NotFoundError, AppError, BadRequestErrorResponse, ServerErrorResponse, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, ConflitErrorResponse } from "../common/errors";
-import { ProductCategory } from "./types";
+import { Price, ProductCategory } from "./types";
 import { Stock } from "./stockModel";
 
 // ------------------------------ Types ------------------------------ //
@@ -39,12 +39,6 @@ const ProductOrderMapper = {
     [ProductOrder.NAME_DSC]: ["name", "desc"] as OrderItem,
 }
 
-/** 
- * @minimum 0 mininum 0.
- * @maximum 2000 maximum 2000.
- */
-type Price = number;
-
 const TAG_PRODUCTS = "Products";
 
 @Route("products")
@@ -64,9 +58,9 @@ export class ProductsController extends Controller {
      * @isInt page Must be an integer >= 0.
      * @minimum page 0 minimum 0.
      * 
-     * @param priceMin Minimum product price, inclusive (minimum 0).
+     * @param priceMin Minimum product price, in Euro cents, inclusive (minimum 0).
      * 
-     * @param priceMax Maximum product price, inclusive (maximum 2000).
+     * @param priceMax Maximum product price, in Euro cents, inclusive (maximum 200000).
      * 
      * @param stock Filter by product's availability. If true, only returns products with available stock.
      * 
@@ -83,7 +77,7 @@ export class ProductsController extends Controller {
         @Query() limit: number = 10,
         @Query() page: number = 0,
         @Query() priceMin: Price = 0,
-        @Query() priceMax: Price = 2000,
+        @Query() priceMax: Price = 200000,
         @Query() stock: boolean = false,
         @Query() category?: ProductCategory,
         @Query() order?: ProductOrder,
@@ -331,7 +325,7 @@ export class ProductsController extends Controller {
         @Path() productId: UUID,
         @Body() body: UpdateProductParams
     ) : Promise<UpdateProductResult> {
-        const { name, price, description, active } = body;
+        const { name, price, description } = body;
 
         const result = await transactionRepeatableRead(async (t) => {
             const result = await getProductByPk(productId);
@@ -339,7 +333,7 @@ export class ProductsController extends Controller {
                 return null;
             }
             const product = result.product;
-            await product.update({name, price, description, active});
+            await product.update({name, price, description});
             return result;
         });
 
@@ -498,11 +492,10 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
 
     const stock = product.stock?.map(s => ({locationId: s.locationId, quantity: s.quantity}));
     const totalStock = stock?.reduce((acc, entry) => acc + entry.quantity, 0);
-    const status: ProductStatus = (!product.active || stock?.length == 0) ? 
+    const status: ProductStatus = (stock?.length == 0) ? 
         ProductStatus.NO_INFO : (totalStock!! == 0) ? 
         ProductStatus.SOLD_OUT : (totalStock!! <= STOCK_THRESHOLD) ? 
         ProductStatus.LAST : ProductStatus.STOCK;
-    
     
     // Make formatted product
     const protectedInfo: ProductProtectedInfo = {
@@ -513,7 +506,6 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
         status: status,
         category: product.category,
         tags: tags || null,
-        active: product.active,
         stock: stock || [],
         totalStock: totalStock || 0,
     }
@@ -580,7 +572,6 @@ interface UpdateProductParams {
     name?: string,
     description?: string,
     price?: Price,
-    active?: boolean,
 }
 
 interface ProductStock {
@@ -617,11 +608,10 @@ interface ProductProtectedInfo {
     tags: ProductCategoryTags | null,
     stock: ProductStockInfo[],
     totalStock: number,
-    active: boolean,
 }
 
 // Public info is the same as protected info, except a few properties.
-type ProductPublicInfo = Omit<ProductProtectedInfo, "active" | "stock" | "totalStock">
+type ProductPublicInfo = Omit<ProductProtectedInfo, "stock" | "totalStock">
 
 /** JSON response format for the "GET /products" endpoint. */
 interface GetProductsResult {

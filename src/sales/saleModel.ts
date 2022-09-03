@@ -20,9 +20,6 @@ export class Sale extends Model<InferAttributes<Sale>, InferCreationAttributes<S
     declare createdAt: CreationOptional<Date>;
     declare updatedAt: CreationOptional<Date>;
 
-    declare getItems1: HasManyGetAssociationsMixin<SaleItem>;
-    declare getItems2: HasManyGetAssociationsMixin<SaleItem>;
-
     declare getLocation: BelongsToGetAssociationMixin<Location>;
     
     declare getCustomer: BelongsToGetAssociationMixin<User>;

@@ -5,10 +5,11 @@ export enum ProductCategory {
     BOOK = "book",
 }
 
-
 /**
- * Pass: [0.00, 0.99, 1234.00]
- * Fail: [0, 1234, 12345.00, 00.00] 
- * @format ^(0|[1-9]\d{0,3})\.\d\d$
+ * Product price in Euro cents.
+ * 
+ * @minimum 0 minimum 0.
+ * @maximum 200000 maximum 200000.
+ * @isInt
  */
-export type Price = string;
+export type Price = number;
