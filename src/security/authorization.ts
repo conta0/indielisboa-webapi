@@ -3,6 +3,7 @@ import * as jwt from "jsonwebtoken";
 import { AuthenticationError, AppErrorCode, ForbiddenError } from "../common/errors";
 import { hasRolePrivileges, Role } from "../common/roles";
 import { security as config } from "../config.json";
+import { appLogger } from "../utils/logger";
 import { JwtAccessFormat } from "./authController";
 
 const accessSecret: string = process.env.ACCESS_SECRET || config.ACCESS_SECRET;
@@ -91,7 +92,7 @@ async function jwtValidator(request: Request, scopes?: string[]) {
 
         // Check if JWT contains target role.
         if (!hasRolePrivileges(role, scopes[0] as Role)) {
-            console.log(`auth error: Got ${role} but expected ${scopes[0]}.`);
+            appLogger.debug(`auth error: Got ${role} but expected ${scopes[0]}.`);
             throw new ForbiddenError({
                 message: "Not enough privileges for this action.",
                 code: AppErrorCode.PRIVILEGE

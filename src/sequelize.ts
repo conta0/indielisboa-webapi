@@ -1,5 +1,6 @@
 import { Options, Sequelize } from "sequelize";
 import { sequelize as config } from "./config.json";
+import { databaseLogger } from "./utils/logger";
 
 // Database URL and options
 const URL: string = process.env.DATABASE_URL || config.DATABASE_URL;
@@ -41,16 +42,16 @@ export function registerAssociations(init: AssociationsInit) {
  * Initializes the DB connection.
  */
 export async function initDatabase(): Promise<void> {
-    console.log("Initializing DB connection...");
+    databaseLogger.info("Initializing DB connection...");
     const sequelize = await createSequelizeInstace();
-    
+
     try {
         await sequelize.authenticate();
     } catch (error) {
         return Promise.reject("Connection failed. Verify connection info ('DATABASE_URL' or 'config.json').");
     }
     
-    console.log("Authenticated.");
+    databaseLogger.info("Authenticated.");
 
     await Promise.all(models.map(func => func(sequelize)));
     await Promise.all(associations.map(func => func()));
@@ -67,5 +68,8 @@ async function createSequelizeInstace(): Promise<Sequelize> {
             "Set the 'DATABASE_URL' enviroment variable or use the 'config.json' file."
         )    
     }   
-    return new Sequelize(URL, options);
+    return new Sequelize(URL, {
+        ...options,
+        logging: msg => databaseLogger.info(msg)
+    });
 }

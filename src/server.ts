@@ -9,6 +9,7 @@ import http from "http";
 import https from "https";
 import { Role } from "./common/roles";
 import { hashData } from "./utils/crypto";
+import { appLogger } from "./utils/logger";
 
 const PORT: number = Number(process.env.PORT) || config.server.PORT;
 const USE_HTTPS: boolean = config.server.https;
@@ -20,24 +21,28 @@ const PASSPHRASE: string = process.env.CERT_PASSPHRASE || config.server.CERT_PAS
 // async/await can't be used at top-level without changing the configuration file
 // which breaks the code in other places.
 (async () => {
+    appLogger.info("Starting...");
+    
     // Start database
     await initDatabase();
-    console.log("Connected successfully to DB!");
+    appLogger.info("Connected successfully to Database!");
 
     // Initial configuration admin configuration
     const user = await User.findOne({where: {role: Role.ADMIN}});
     if (user == null) {
-        console.log("No admin account detected.");
+        appLogger.warn("No admin account detected.");
         const username: string = process.env.ADMIN_USER || config.database.ADMIN_USER;
         const password: string = process.env.ADMIN_PW || config.database.ADMIN_PW;
 
         if (username == null || password == null || username.length == 0 || password.length == 0) {
-            console.log("No admin configuration. Restart with valid configuration or create one directly.");
-            console.log("Some resources will be unavailable without an admin account.");
+            appLogger.warn(
+                "No admin configuration. Restart with valid configuration or create one directly.\n" + 
+                "Some resources will be unavailable without an admin account."
+            );
         } else {
             const hashedPw: string = await hashData(password);
             await User.create({username, password: hashedPw, name: "ADMIN", role: Role.ADMIN});
-            console.log("Created default admin account.");
+            appLogger.info("Created default admin account.")
         }
     }
     // Start server
@@ -50,8 +55,8 @@ const PASSPHRASE: string = process.env.CERT_PASSPHRASE || config.server.CERT_PAS
                 key: privateKey,
                 passphrase: PASSPHRASE
             }
-            , app).listen(PORT, () => { console.log(`HTTPS Server started on port ${PORT}`); })
+            , app).listen(PORT, () => { appLogger.info((`HTTPS Server started on port ${PORT}`)); })
     } else {
-        http.createServer(app).listen(PORT, () => { console.log(`HTTP Server started on port ${PORT}.`); });
+        http.createServer(app).listen(PORT, () => { appLogger.info((`HTTP Server started on port ${PORT}`)); });
     }
 })().catch(console.error);

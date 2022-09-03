@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { FieldErrors, ValidateError } from "tsoa";
+import { appLogger } from "../utils/logger";
 
 export enum AppErrorCode {
     // Unspecified error.
@@ -34,6 +35,7 @@ export enum AppErrorCode {
  * Each field has a message describing the error for that field and may have the associated value. 
  */
 interface AppErrorConstructor {
+    name?: string,
     code?: AppErrorCode,
     message?: string,
     fields?: FieldErrors,
@@ -50,7 +52,7 @@ export class AppError {
     fields?: FieldErrors;
 
     constructor(params?: AppErrorConstructor) {
-        this.name = "SimpleError";
+        this.name = params?.name || "AppError";
         this.message = params?.message;
         this.code = params?.code || AppErrorCode.UNSPECIFIED;
         this.fields = params?.fields;
@@ -72,17 +74,33 @@ export class ConflitError extends AppError {name = "ConflitError"}
  * @param next Callback function. Will be ignored.
  */
 export function requestErrorHandler(error: Error | AppError, request: Request, response: Response, next: Function): void {
-    console.log("\x1b[31m%s\x1b[0m", `${error.name}: ${error.message}`);
-    
-    // Use reflection by looking at the error's constructor. typeof doesn't work here. 
-    const type = error.constructor;
-    switch(type) {
+    // Error pre-processing
+    // All errors, except unexpected ones, should be of type AppError.
+    switch(error.constructor) {
         case ValidateError:
-            sendValidationError(response, error as ValidateError);
+            error = new BadRequestError({
+                name: error.name,
+                code: AppErrorCode.REQ_FORMAT,
+                message: error.message,
+                fields: (error as ValidateError).fields
+            });
             break;
         case SyntaxError:
-            sendSyntaxError(response, error as SyntaxError);
+            error = new BadRequestError({
+                name: error.name,
+                code: AppErrorCode.REQ_FORMAT,
+                message: error.message,
+            });
             break;
+        default:
+            ;
+    }
+
+    if (error instanceof AppError) {
+        appLogger.info(error);
+    }
+
+    switch(error.constructor) {
         case BadRequestError:
             sendBadRequestError(response, error as BadRequestError);
             break;
@@ -99,6 +117,7 @@ export function requestErrorHandler(error: Error | AppError, request: Request, r
             sendConflitError(response, error as ConflitError);
             break;
         default:
+            appLogger.error((error as any).stack);
             sendUnexpectedServerError(response);
     }
 }

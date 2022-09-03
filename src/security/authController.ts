@@ -9,6 +9,7 @@ import { Transaction } from "sequelize";
 import { getNowAfterSeconds, hasDateExpired, randomToken, validateData } from "../utils/crypto";
 import { AuthenticationError, AppErrorCode, ForbiddenError, NotFoundError, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, BadRequestError, AppError } from "../common/errors";
 import { OAuth2Client } from "google-auth-library";
+import { appLogger } from "../utils/logger";
 
 // Access token info. As the name implies, this token grants access to the application resources.
 const accessSecret: string = process.env.ACCESS_SECRET || config.ACCESS_SECRET;
@@ -134,7 +135,7 @@ export class AuthController extends Controller {
             });
             payload = ticket.getPayload();
         } catch (err) {
-            console.log(err);
+            appLogger.error(err);
             return Promise.reject(new ForbiddenError());
         }
         
@@ -204,9 +205,9 @@ export class AuthController extends Controller {
                 }
             )
         } catch(err) {
-            // We really don't care about errors here, since we're trying to logout the user.
+            // We really don't care about sending errors here, since we're trying to logout the user.
             // Even if there was a DB error, it doesn't matter to the user.
-            console.log(err);
+            appLogger.error(err);
         }
         
         // Clear cookies.

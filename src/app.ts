@@ -42,6 +42,10 @@ if (TRUST_PROXY) {
     });
 }
 
+// Winston logger
+import { routeLogger } from "./utils/logger";
+app.use(routeLogger);
+
 // API Routes
 import { RegisterRoutes } from "./routes";
 const ROUTER = express.Router();
