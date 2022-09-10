@@ -109,24 +109,8 @@ export class AuthController extends Controller {
         @Request() request: ExpressRequest,
         @Body() body: LoginGoogleParams,
     ): Promise<LoginResult> {
-        const cookieToken = request.cookies["g_csrf_token"];
-        const bodyToken = body.g_csrf_token;
-        const credential = body.credential;
-        
-        // Verify Google's double submit cookie
-        if (cookieToken == null) {
-            return Promise.reject(new BadRequestError({message: "Google ID: No CSRF token in cookie."}));
-        }
-
-        if (bodyToken == null) {
-            return Promise.reject(new BadRequestError({message: "Google ID: No CSRF token in body."}));    
-        }
-
-        if (cookieToken !== bodyToken) {
-            return Promise.reject(new BadRequestError({message: "Google ID: Failed to verify double submit cookie."}));        
-        }
-
         // Verify Google ID
+        const credential = body.credential;
         let payload;
         try {
             const ticket = await googleClient.verifyIdToken({
@@ -212,8 +196,8 @@ export class AuthController extends Controller {
         
         // Clear cookies.
         const response = request.res;
-        response?.clearCookie(accessCookie);
-        response?.clearCookie(refreshCookie);
+        response?.clearCookie(accessCookie, {path: "/", secure: true, httpOnly: true, sameSite: "none"});
+        response?.clearCookie(refreshCookie, {path: "/", secure: true, httpOnly: true, sameSite: "none"});
     }
 
     /**
@@ -369,10 +353,9 @@ interface LoginBasicParams {
     password: Password,
 }
 
-// Google's POST Request in URL encoded
+// Google ID credentials
 interface LoginGoogleParams {
     credential: string,
-    g_csrf_token: string
 }
 
 // ------------------------------ Response Formats ------------------------------ //

@@ -53,12 +53,16 @@ RegisterRoutes(ROUTER);
 app.use(API_PATH, ROUTER);
 
 // Documentation routes
-app.get("/swagger.json", (request: Request, response: Response) => {
+const DOCS_PATH = "/docs";
+app.get(`${DOCS_PATH}/swagger.json`, (request: Request, response: Response) => {
     response.status(200);
     response.json(API_SPECIFICATION);
     response.end();
 });
-app.use("/", swaggerUI.serve, swaggerUI.setup(API_SPECIFICATION));
+app.use(`${DOCS_PATH}`, swaggerUI.serve, swaggerUI.setup(API_SPECIFICATION));
+
+// Any other path is redirected back to docs
+app.use("/", (request: Request, response: Response) => response.redirect(DOCS_PATH));
 
 // Default Error Handler
 import { requestErrorHandler } from "./common/errors";
