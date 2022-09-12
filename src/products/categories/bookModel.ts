@@ -1,6 +1,6 @@
 import { Association, BelongsToGetAssociationMixin, CreationOptional, DataTypes, ForeignKey, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize } from "sequelize";
 import { registerAssociations, registerModel } from "../../sequelize";
-import { CATEGORY_FK, Product } from "../productModel";
+import { PRODUCT_FK, Product } from "../productModel";
 import { ProductCategory } from "../types";
 
 export enum BagColour {
@@ -77,7 +77,7 @@ async function initBookModel(sequelize: Sequelize): Promise<void> {
 
 async function initBookAssociations(): Promise<void> {
     Book.belongsTo(Product, {
-        foreignKey: CATEGORY_FK,
+        foreignKey: PRODUCT_FK,
         as: "product"
     });
 }

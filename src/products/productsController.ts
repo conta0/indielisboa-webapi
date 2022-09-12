@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Path, Post, Query, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
+import { Body, Controller, Get, Patch, Path, Post, Put, Query, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
 import { SequelizeTransactionCallback, UUID } from "../common/types";
 import { Role } from "../common/roles";
 import { SecurityScheme } from "../security/authorization";
@@ -9,6 +9,7 @@ import { ForeignKeyConstraintError, Includeable, InferCreationAttributes, Model,
 import { BadRequestError, ConflitError, AppErrorCode, NotFoundError, AppError, BadRequestErrorResponse, ServerErrorResponse, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, ConflitErrorResponse } from "../common/errors";
 import { Price, ProductCategory } from "./types";
 import { Stock } from "./stockModel";
+import { Image } from "./imageModel";
 
 // ------------------------------ Types ------------------------------ //
 
@@ -92,16 +93,23 @@ export class ProductsController extends Controller {
 
         // If the request wants products in stock, minimum stock is 1. 
         const minStock = (stock) ? 1 : 0;
-        const include: Includeable = {
-            required: stock,
-            association: Product.associations.stock,
-            attributes: ["quantity"],
-            where: {
-                quantity: {
-                    [Op.gte]: minStock
+        const include: Includeable[] = [
+            {
+                required: stock,
+                association: Product.associations.stock,
+                attributes: ["quantity"],
+                where: {
+                    quantity: {
+                        [Op.gte]: minStock
+                    }
                 }
-            }
-        };
+            },
+            {
+                required: false,
+                association: Product.associations.image,
+                attributes: ["data"]
+            },
+        ];
 
         // Category special case
         if (category != null) {
@@ -286,7 +294,7 @@ export class ProductsController extends Controller {
 
         try {
             const productId = await transactionReadCommitted(async(t) => {
-                const product = await createProduct(body, ProductCategory.BAG, t);
+                const product = await createProduct(body, ProductCategory.BOOK, t);
                 await product.createBook({title, author, publisher, year}, {transaction: t});
                 return product.productId;
             });
@@ -428,6 +436,49 @@ export class ProductsController extends Controller {
             throw err;
         }
     }
+
+    /**
+     * Updates the image of a product. If an image already exist, it will be replaced.
+     * 
+     * @summary Update the image of a product.
+     * 
+     * @param productId The product's unique identifier.
+     */
+    @Put("{productId}/image")
+    @Tags(TAG_PRODUCTS)
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
+    @SuccessResponse(204, "Successfully updated the image.")
+    @Response<BadRequestErrorResponse>(400, "Bad Request.")
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<NotFoundError>(404, "Product not found.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
+    public async updateProductImage(
+        @Path() productId: UUID,
+        @Body() body: UpdateProductImage
+    ) : Promise<void> {
+        const { image } = body;
+
+        try {
+            await Image.upsert({productId: productId, data: image});
+        } catch(err) {
+            // Product not found
+            if (err instanceof ForeignKeyConstraintError) {
+                return Promise.reject(new NotFoundError({
+                    code: AppErrorCode.NOT_FOUND,
+                    message: "Product not found.",
+                    fields: {
+                        "productId": {
+                            message: "This productId doesn't exist.",
+                            value: productId
+                        }
+                    }
+                }));
+            }
+
+            throw err;
+        }
+    }
 }
 
 // ------------------------------ Helper Functions ------------------------------ //
@@ -465,17 +516,24 @@ interface ProductByPk {
  */
 async function getProductByPk(productId: Product["productId"], transaction?: Transaction): Promise<ProductByPk | null> {
     // Associate with Stock, even if the product has no assoaciton. Exclude its ID.
-    const include: Includeable = {
-        required: false,
-        association: Product.associations.stock,
-        attributes: ["locationId", "quantity"]
-    };
+    const include: Includeable[] = [
+        {
+            required: false,
+            association: Product.associations.stock,
+            attributes: ["locationId", "quantity"]
+        },
+        {
+            required: false,
+            association: Product.associations.image,
+            attributes: ["data"],
+        }
+    ];
 
     const product = await Product.findByPk(productId, {include, transaction: transaction});
     if (product == null) {
         return null;
     }
-    
+
     const tags = await product.getCategoryTags(transaction);
     return { product, tags };
 }
@@ -504,6 +562,7 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
         description: product.description,
         price: product.price,
         status: status,
+        image: product.image?.data,
         category: product.category,
         tags: tags || null,
         stock: stock || [],
@@ -527,6 +586,7 @@ function toProductPublicInfo(productAndTags: ProductByPk): ProductPublicInfo {
         description: protectedInfo.description,
         price: protectedInfo.price,
         status: protectedInfo.status,
+        image: protectedInfo.image,
         category: protectedInfo.category,
         tags: protectedInfo.tags,
     }
@@ -583,6 +643,10 @@ interface UpdateProductStockParams {
     list: ProductStock[]
 }
 
+interface UpdateProductImage {
+    image: string
+}
+
 // ------------------------------ Response Formats ------------------------------ //
 
 // TSOA doesn't like "object", so this is a workaround.
@@ -595,14 +659,13 @@ interface ProductStockInfo {
     quantity: number,
 }
 
-// TODO images
 interface ProductProtectedInfo {
     productId: UUID,
     name: string,
     description: string,
     price: number,
     status: ProductStatus,
-    //images: string[],
+    image?: string,
     category: ProductCategory,
     /** @example null */
     tags: ProductCategoryTags | null,

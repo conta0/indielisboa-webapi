@@ -1,6 +1,6 @@
 import { Association, BelongsToGetAssociationMixin, DataTypes, ForeignKey, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize } from "sequelize";
 import { registerAssociations, registerModel } from "../../sequelize";
-import { CATEGORY_FK, Product } from "../productModel";
+import { PRODUCT_FK, Product } from "../productModel";
 import { ProductCategory } from "../types";
 
 export enum TshirtSize {
@@ -85,7 +85,7 @@ async function initTshirtModel(sequelize: Sequelize): Promise<void> {
 
 async function initTshirtAssociations(): Promise<void> {
     Tshirt.belongsTo(Product, {
-        foreignKey: CATEGORY_FK,
+        foreignKey: PRODUCT_FK,
         as: "product",
     });
 }

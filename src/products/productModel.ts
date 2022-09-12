@@ -5,10 +5,11 @@ import { registerAssociations, registerModel } from "../sequelize";
 import { Bag } from "./categories/bagModel";
 import { Book } from "./categories/bookModel";
 import { Tshirt } from "./categories/tshirtModel";
+import { Image } from "./imageModel";
 import { Stock, STOCK_LOCATION_FK, STOCK_PRODUCT_FK } from "./stockModel";
 import { ProductCategory} from "./types";
 
-export const CATEGORY_FK = "productId"; 
+export const PRODUCT_FK = "productId"; 
 
 export class Product extends Model<InferAttributes<Product>, InferCreationAttributes<Product>> {
     declare productId: CreationOptional<UUID>;
@@ -24,7 +25,7 @@ export class Product extends Model<InferAttributes<Product>, InferCreationAttrib
     /** Associate this product to a location. */
     declare addLocation: BelongsToManyAddAssociationMixin<Location, Location["locationId"]>;
     /** Retrieve the product's stock */
-    declare getStocks: HasManyGetAssociationsMixin<Stock>
+    declare getStocks: HasManyGetAssociationsMixin<Stock>;
     
     // The following functions pertain to a product's category. Only one of those must be called and exactly one time.
     // Even though each Product instance will have all of the below
@@ -48,6 +49,7 @@ export class Product extends Model<InferAttributes<Product>, InferCreationAttrib
     // Eager loaded properties.
     declare locations?: NonAttribute<Location[]>;
     declare stock?: NonAttribute<Stock[]>;
+    declare image?: NonAttribute<Image>;
     declare tshirt?: NonAttribute<Tshirt>;
     declare bag?: NonAttribute<Bag>;
     declare book?: NonAttribute<Book>;
@@ -55,6 +57,7 @@ export class Product extends Model<InferAttributes<Product>, InferCreationAttrib
     declare static associations: {
         locations: Association<Product, Location>;
         stock: Association<Product, Stock>;
+        image: Association<Product, Image>;
         tshirt: Association<Product, Tshirt>;
         bag: Association<Product, Bag>;
         book: Association<Product, Book>;
@@ -144,17 +147,22 @@ async function initProductAssociations(): Promise<void> {
     });
 
     Product.hasOne(Tshirt, {
-        foreignKey: CATEGORY_FK,
+        foreignKey: PRODUCT_FK,
         as: "tshirt"
     })
 
     Product.hasOne(Bag, {
-        foreignKey: CATEGORY_FK,
+        foreignKey: PRODUCT_FK,
         as: "bag"
     })
 
     Product.hasOne(Book, {
-        foreignKey: CATEGORY_FK,
+        foreignKey: PRODUCT_FK,
         as: "book"
+    })
+
+    Product.hasOne(Image, {
+        foreignKey: PRODUCT_FK,
+        as: "image"
     })
 }

@@ -117,45 +117,9 @@ export function requestErrorHandler(error: Error | AppError, request: Request, r
             sendConflitError(response, error as ConflitError);
             break;
         default:
-            appLogger.error((error as any).stack);
+            appLogger.error(error + "\n" + (error as any).stack);
             sendUnexpectedServerError(response);
     }
-}
-
-/**
- * When the client sends a request with bad format (query, params or body), send a "400 Bad Request" JSON response.
- * The response should contain all the information necessary for the client to correct the request.
- * 
- * @param response Express Response object.
- * @param error ValidateError object.
- */
-async function sendValidationError(response: Response, error: ValidateError): Promise<void> {
-    const body: BadRequestErrorResponse = {
-        status: 400,
-        error: {
-            code: AppErrorCode.REQ_FORMAT,
-            fields: error.fields
-        }
-    };
-    response.status(400).json(body);
-}
-
-/**
- * When the client sends a request with wrong JSON syntax, send a "400 Bad Request" JSON response.
- * 
- * @param response Express Response object.
- * @param error SyntaxError object.
- */
-async function sendSyntaxError(response: Response, error: SyntaxError): Promise<void> {
-    const body: BadRequestErrorResponse = {
-        status: 400,
-        error: {
-            code: AppErrorCode.REQ_FORMAT,
-            message: "Expected a JSON request."
-        }
-    };
-
-    response.status(400).json(body);
 }
 
 /**
