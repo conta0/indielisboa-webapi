@@ -2,14 +2,14 @@ import { Body, Controller, Get, Patch, Path, Post, Put, Query, Response, Route, 
 import { SequelizeTransactionCallback, UUID } from "../common/types";
 import { Role } from "../common/roles";
 import { SecurityScheme } from "../security/authorization";
-import { TshirtColour, TshirtSize } from "./categories/tshirtModel";
-import { BagColour } from "./categories/bagModel";
+import { BagColour, TshirtColour, TshirtSize } from "./types";
 import { Product } from "./productModel";
-import { ForeignKeyConstraintError, Includeable, InferCreationAttributes, Model, Op, Order, OrderItem, Transaction, UniqueConstraintError, WhereOptions } from "sequelize";
+import { ForeignKeyConstraintError, Includeable, InferCreationAttributes, Model, Op, Order, OrderItem, Sequelize, Transaction, UniqueConstraintError, WhereOptions } from "sequelize";
 import { BadRequestError, ConflitError, AppErrorCode, NotFoundError, AppError, BadRequestErrorResponse, ServerErrorResponse, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, ConflitErrorResponse } from "../common/errors";
 import { Price, ProductCategory } from "./types";
 import { Stock } from "./stockModel";
 import { Image } from "./imageModel";
+import { Tag } from "./tagModel";
 
 // ------------------------------ Types ------------------------------ //
 
@@ -109,6 +109,11 @@ export class ProductsController extends Controller {
                 association: Product.associations.image,
                 attributes: ["data"]
             },
+            {
+                required: false,
+                association: Product.associations.tags,
+                attributes: ["name", "value"]
+            }
         ];
 
         // Category special case
@@ -124,7 +129,7 @@ export class ProductsController extends Controller {
 
         // Fetch products
         const result = await Product.findAll({limit: limit, offset: page * limit, where, include, order: orderBy});
-        const products: ProductPublicInfo[] = result.map(p => toProductPublicInfo({product: p, tags: null}));
+        const products: ProductPublicInfo[] = result.map(product => toProductPublicInfo(product));
         
         return {
             status: 200,
@@ -199,43 +204,74 @@ export class ProductsController extends Controller {
     }
 
     /**
-     * @summary Creates a new Tshirt.
+     * @summary Creates a new Product.
      */
-     @Post("tshirts")
-     @Tags(TAG_PRODUCTS)
-     @Security(SecurityScheme.JWT, [Role.MANAGER])
-     @SuccessResponse(201, "Successfully created a new Tshirt.")
-     @Response<BadRequestErrorResponse>(400, "Bad Request.")
-     @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
-     @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
-     @Response<ConflitErrorResponse>(409, "Can't create tshirt.")
-     @Response<ServerErrorResponse>(500, "Internal Server Error.")
-     public async createTshirt(
-         @Body() body: CreateTshirtParams
-     ) : Promise<CreateProductResult> {
-        const { size,  colour, design } = body;
+    @Post()
+    @Tags(TAG_PRODUCTS)
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
+    @SuccessResponse(201, "Successfully created a new product.")
+    @Response<BadRequestErrorResponse>(400, "Bad Request.")
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<ConflitErrorResponse>(409, "Can't create tshirt.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
+    public async createProduct(
+        @Body() body: CreateProductParams
+    ) : Promise<CreateProductResult> {
+        if (!body.category) {
+            return Promise.reject(new BadRequestError({
+                code: AppErrorCode.REQ_FORMAT,
+                message: "Expected product category.",
+                fields: {
+                    "body.category": {
+                        message: `category is required and must be one of the following: [${Object.values(ProductCategory)}]`,
+                        value: null
+                    }
+                }
+            }))
+        }
 
-        try {
-            const productId = await transactionReadCommitted(async(t) => {
-                const product = await createProduct(body, ProductCategory.TSHIRT, t);
-                await product.createTshirt({size, colour, design}, {transaction: t});
-                return product.productId;
-            });
-
-            return {
-                status: 201,
-                data: productId
-            }
-        } catch (err) {
-            if (err instanceof UniqueConstraintError) {
-                return Promise.reject(new ConflitError({
-                    message: "The tshirt already exists. The combination of tags must be unique."
-                }));
-            }
-            return Promise.reject(err);
+        const result = await createProduct(body);
+        
+        // Bubble up the error
+        if (result instanceof AppError) {
+            return Promise.reject(result);
         }
         
-     }
+        return {
+            status: 201,
+            data: result.productId,
+        }
+    }
+
+    /**
+     * @summary Creates a new Tshirt.
+     */
+    @Post("tshirts")
+    @Tags(TAG_PRODUCTS)
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
+    @SuccessResponse(201, "Successfully created a new Tshirt.")
+    @Response<BadRequestErrorResponse>(400, "Bad Request.")
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<ConflitErrorResponse>(409, "Can't create tshirt.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
+    public async createTshirt(
+        @Body() body: CreateTshirtParams
+    ) : Promise<CreateProductResult> {
+        body.category ??= ProductCategory.TSHIRT; 
+        const result = await createProduct(body);
+       
+        // Bubble up the error
+        if (result instanceof AppError) {
+            return Promise.reject(result);
+        }
+        
+        return {
+            status: 201,
+            data: result.productId,
+        }
+    }
 
     /**
      * @summary Creates a new Bag.
@@ -252,26 +288,17 @@ export class ProductsController extends Controller {
     public async createBag(
         @Body() body: CreateBagParams
     ) : Promise<CreateProductResult> {
-        const { design, colour } = body;
-
-        try {
-            const productId = await transactionReadCommitted(async(t) => {
-                const product = await createProduct(body, ProductCategory.BAG, t);
-                await product.createBag({colour, design}, {transaction: t});
-                return product.productId;
-            });
-
-            return {
-                status: 201,
-                data: productId
-            }
-        } catch (err) {
-            if (err instanceof UniqueConstraintError) {
-                return Promise.reject(new ConflitError({
-                    message: "The bag already exists. The combination of tags must be unique."
-                }));
-            }
-            return Promise.reject(err);
+        body.category ??= ProductCategory.BAG;
+        const result = await createProduct(body);
+        
+        // Bubble up the error
+        if (result instanceof AppError) {
+            return Promise.reject(result);
+        }
+        
+        return {
+            status: 201,
+            data: result.productId,
         }
     }
 
@@ -290,26 +317,17 @@ export class ProductsController extends Controller {
     public async createBook(
         @Body() body: CreateBookParams
     ) : Promise<CreateProductResult> {
-        const { title, author, publisher, year } = body;
-
-        try {
-            const productId = await transactionReadCommitted(async(t) => {
-                const product = await createProduct(body, ProductCategory.BOOK, t);
-                await product.createBook({title, author, publisher, year}, {transaction: t});
-                return product.productId;
-            });
-            
-            return {
-                status: 201,
-                data: productId
-            }
-        } catch (err) {
-            if (err instanceof UniqueConstraintError) {
-                return Promise.reject(new ConflitError({
-                    message: "The book already exists. The combination of tags must be unique."
-                }));
-            }
-            return Promise.reject(err);
+        body.category ??= ProductCategory.BOOK;
+        const result = await createProduct(body);
+        
+        // Bubble up the error
+        if (result instanceof AppError) {
+            return Promise.reject(result);
+        }
+        
+        return {
+            status: 201,
+            data: result.productId,
         }
     }
 
@@ -336,18 +354,23 @@ export class ProductsController extends Controller {
         const { name, price, description } = body;
 
         const result = await transactionRepeatableRead(async (t) => {
-            const result = await getProductByPk(productId);
+            const result = await getProductByPk(productId, t);
             if (result == null) {
-                return null;
+                return new NotFoundError({
+                    code: AppErrorCode.NOT_FOUND,
+                    message: "Product not found"
+                });
             }
-            const product = result.product;
-            await product.update({name, price, description});
-            return result;
+
+            const product = result;
+            product.set({name, price, description});
+            await product.save({transaction: t});
+            return product;
         });
 
         // Product not found
-        if (result == null) {
-            return Promise.reject(new NotFoundError());
+        if (result instanceof AppError) {
+            return Promise.reject(result);
         }
 
         const protectedInfo = toProductProtectedInfo(result);
@@ -514,8 +537,7 @@ interface ProductByPk {
  * @param transaction The trasanction
  * @returns A promise to be either resolved with the Product and its Tags or reject with an Error.
  */
-async function getProductByPk(productId: Product["productId"], transaction?: Transaction): Promise<ProductByPk | null> {
-    // Associate with Stock, even if the product has no assoaciton. Exclude its ID.
+async function getProductByPk(productId: Product["productId"], transaction?: Transaction): Promise<Product | null> {
     const include: Includeable[] = [
         {
             required: false,
@@ -526,27 +548,28 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
             required: false,
             association: Product.associations.image,
             attributes: ["data"],
+        },
+        {
+            required: false,
+            association: Product.associations.tags,
+            attributes: ["name", "value"]
         }
     ];
 
-    const product = await Product.findByPk(productId, {include, transaction: transaction});
-    if (product == null) {
-        return null;
-    }
-
-    const tags = await product.getCategoryTags(transaction);
-    return { product, tags };
+    return await Product.findByPk(productId, {include, transaction});
 }
 
 /**
  * Receives a product and transforms it into a view with protected info.
  * 
- * @param productAndTags The product to be processed.
+ * @param product The product to be processed.
  * @returns A product formatted with protected info.
  */
- function toProductProtectedInfo(productAndTags: ProductByPk): ProductProtectedInfo {
-    const product: Product = productAndTags.product;
-    const tags = productAndTags.tags?.toJSON<ProductCategoryTags>();
+ function toProductProtectedInfo(product: Product): ProductProtectedInfo {
+    const tags = product.tags?.reduce((acc: any, tag) => {
+        acc[tag.name] = tag.value;
+        return acc;
+    }, {});
 
     const stock = product.stock?.map(s => ({locationId: s.locationId, quantity: s.quantity}));
     const totalStock = stock?.reduce((acc, entry) => acc + entry.quantity, 0);
@@ -564,7 +587,7 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
         status: status,
         image: product.image?.data,
         category: product.category,
-        tags: tags || null,
+        tags: tags,
         stock: stock || [],
         totalStock: totalStock || 0,
     }
@@ -575,11 +598,11 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
 /**
  * Receives a product and transforms it into a view with only public info.
  * 
- * @param productAndTags The product to be processed.
+ * @param product The product to be processed.
  * @returns A product formatted with public info.
  */
-function toProductPublicInfo(productAndTags: ProductByPk): ProductPublicInfo {
-    const protectedInfo: ProductProtectedInfo = toProductProtectedInfo(productAndTags);
+function toProductPublicInfo(product: Product): ProductPublicInfo {
+    const protectedInfo: ProductProtectedInfo = toProductProtectedInfo(product);
     const publicInfo: ProductPublicInfo = {
         productId: protectedInfo.productId,
         name: protectedInfo.name,
@@ -590,43 +613,101 @@ function toProductPublicInfo(productAndTags: ProductByPk): ProductPublicInfo {
         category: protectedInfo.category,
         tags: protectedInfo.tags,
     }
+
     return publicInfo;
 }
 
-async function createProduct(
-    params: CreateProductParams,
-    category: ProductCategory,
-    transaction?: Transaction
-): Promise<Product> {
-    const { name, description, price } = params;
-    return await Product.create({name, description, price, category}, {transaction: transaction});
+interface ProductTag {
+    productId: string,
+    name: string,
+    value: string,
+}
+
+/**
+ * Creates a new product.
+ * 
+ * @param params Product creation parameters.
+ * @param _category The product's category.
+ * @returns A promise to be either resolved with the created product or an AppError or rejected with an Error.
+ */
+async function createProduct(params: CreateProductParams): Promise<Product | AppError> {
+    const { name, description, price, category, ...tags } = params;
+    const tagNames: string[] = Object.keys(tags);
+    const tagValues: string[] = Object.values(tags);
+
+    return await transactionReadCommitted(async(t) => {
+        const count = await Tag.count({
+            attributes: [
+                [Sequelize.literal("DISTINCT(COUNT(*))"), "count"]
+            ],
+            where: {
+                name: tagNames,
+                value: tagValues,
+            },
+            group: "productId",
+            transaction: t,
+        });
+        
+        // Check if tag combination already exists
+        if (count.some(result => result.count == tagNames.length)) {
+            return new ConflitError({
+                code: AppErrorCode.DUPLICATED,
+                message: "This product's tags already exist.",
+                fields: tagNames.reduce((acc: any, name, idx) => {
+                    acc[name] = {
+                        message: "Repeated tag combination.",
+                        value: tagValues[idx]
+                    }
+                    return acc;
+                }, {})
+            });
+        }
+
+        const product = await Product.create({name, description, price, category: category!!}, {transaction: t});
+        const productId = product.productId;
+
+        // Associate product's tags
+        const pTags: ProductTag[] = tagNames.map((name, idx) => ({
+            productId,
+            name,
+            value: tagValues[idx]
+        }));
+        await Tag.bulkCreate(pTags, {transaction: t});
+        return product; 
+    })
 }
 
 // ------------------------------ Request Formats ------------------------------ //
 
-interface CreateProductParams {
+interface CreateProductBaseParams {
     name: string,
     description: string,
     price: Price,
 }
 
-interface CreateTshirtParams extends CreateProductParams {
+interface CreateTshirtParams extends CreateProductBaseParams {
+    category?: ProductCategory.TSHIRT,
     colour: TshirtColour,
     size: TshirtSize,
     design: string,
 }
 
-interface CreateBagParams extends CreateProductParams {
+interface CreateBagParams extends CreateProductBaseParams {
+    category?: ProductCategory.BAG,
     colour: BagColour,
     design: string,
 }
 
-interface CreateBookParams extends CreateProductParams {
+interface CreateBookParams extends CreateProductBaseParams {
+    category?: ProductCategory.BOOK,
     title: string,
     author: string,
     publisher: string,
     year: string,
 }
+
+// Product creation parameters must match one of these 
+type CreateProductParams = CreateTshirtParams | CreateBagParams | CreateBookParams;
 
 interface UpdateProductParams {
     name?: string,
@@ -667,8 +748,7 @@ interface ProductProtectedInfo {
     status: ProductStatus,
     image?: string,
     category: ProductCategory,
-    /** @example null */
-    tags: ProductCategoryTags | null,
+    tags: ProductCategoryTags,
     stock: ProductStockInfo[],
     totalStock: number,
 }

@@ -1,12 +1,10 @@
-import { Association, BelongsToManyAddAssociationMixin, BelongsToManyGetAssociationsMixin, CreationOptional, DataTypes, FindOptions, HasManyGetAssociationsMixin, HasOneCreateAssociationMixin, HasOneGetAssociationMixin, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, Transaction, UUIDV4 } from "sequelize";
+import { Association, BelongsToManyAddAssociationMixin, BelongsToManyGetAssociationsMixin, CreationOptional, DataTypes, HasManyGetAssociationsMixin, InferAttributes, InferCreationAttributes, Model, NonAttribute, Sequelize, UUIDV4 } from "sequelize";
 import { UUID } from "../common/types";
 import { Location } from "../locations/locationModel";
 import { registerAssociations, registerModel } from "../sequelize";
-import { Bag } from "./categories/bagModel";
-import { Book } from "./categories/bookModel";
-import { Tshirt } from "./categories/tshirtModel";
 import { Image } from "./imageModel";
 import { Stock, STOCK_LOCATION_FK, STOCK_PRODUCT_FK } from "./stockModel";
+import { Tag } from "./tagModel";
 import { ProductCategory} from "./types";
 
 export const PRODUCT_FK = "productId"; 
@@ -26,60 +24,18 @@ export class Product extends Model<InferAttributes<Product>, InferCreationAttrib
     declare addLocation: BelongsToManyAddAssociationMixin<Location, Location["locationId"]>;
     /** Retrieve the product's stock */
     declare getStocks: HasManyGetAssociationsMixin<Stock>;
-    
-    // The following functions pertain to a product's category. Only one of those must be called and exactly one time.
-    // Even though each Product instance will have all of the below
-    // the bussiness rule states that each product must have exactly one category.
-    // Sequelize doesn't provide a clean way to implement a "IS-A" relationship, so it's our responsibility
-    // to ensure this rule isn's broken (i.e., a product always has one category and it never changes).
-
-    /** Create this product as a Tshirt */
-    declare createTshirt: HasOneCreateAssociationMixin<Tshirt>;
-    /** Retrieve the Tshirt info */
-    declare getTshirt: HasOneGetAssociationMixin<Tshirt>
-    /** Create this product as a Bag */
-    declare createBag: HasOneCreateAssociationMixin<Bag>;
-    /** Retrieve the Bag info */
-    declare getBag: HasOneGetAssociationMixin<Bag>
-    /** Create this product as a Book */
-    declare createBook: HasOneCreateAssociationMixin<Book>;
-    /** Retrieve the Book info */
-    declare getBook: HasOneGetAssociationMixin<Book>;
 
     // Eager loaded properties.
     declare locations?: NonAttribute<Location[]>;
     declare stock?: NonAttribute<Stock[]>;
     declare image?: NonAttribute<Image>;
-    declare tshirt?: NonAttribute<Tshirt>;
-    declare bag?: NonAttribute<Bag>;
-    declare book?: NonAttribute<Book>;
+    declare tags?: NonAttribute<Tag[]>;
 
     declare static associations: {
         locations: Association<Product, Location>;
         stock: Association<Product, Stock>;
         image: Association<Product, Image>;
-        tshirt: Association<Product, Tshirt>;
-        bag: Association<Product, Bag>;
-        book: Association<Product, Book>;
-    }
-
-    /**
-     * A wrapper function that will retrieve this product's tags, should they exist. 
-     * 
-     * @param transaction The transaction in which the query will run.
-     * @returns A promise to be either resolved with the Product's tags or rejected with an Error.
-     */
-    async getCategoryTags(transaction?: Transaction){
-        // Let's exclude the "productId" because it's a foreign key to this instance.
-        const options: FindOptions = {attributes: {exclude: ["productId"]}, transaction: transaction};
-        switch(this.category) {
-            case ProductCategory.TSHIRT:
-                return this.getTshirt(options);
-            case ProductCategory.BAG:
-                return this.getBag(options);
-            case ProductCategory.BOOK:
-                return this.getBook(options);
-        }
+        tags: Association<Product, Tag>;
     }
 }
 
@@ -146,23 +102,13 @@ async function initProductAssociations(): Promise<void> {
         as: "stock",
     });
 
-    Product.hasOne(Tshirt, {
-        foreignKey: PRODUCT_FK,
-        as: "tshirt"
-    })
-
-    Product.hasOne(Bag, {
-        foreignKey: PRODUCT_FK,
-        as: "bag"
-    })
-
-    Product.hasOne(Book, {
-        foreignKey: PRODUCT_FK,
-        as: "book"
-    })
-
     Product.hasOne(Image, {
         foreignKey: PRODUCT_FK,
         as: "image"
-    })
+    });
+
+    Product.hasMany(Tag, {
+        foreignKey: PRODUCT_FK,
+        as: "tags"
+    });
 }
