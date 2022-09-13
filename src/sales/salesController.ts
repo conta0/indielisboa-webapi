@@ -6,7 +6,7 @@ import { Sale, SaleStatus } from "./saleModel";
 import { UUID } from "../common/types";
 import { Stock } from "../products/stockModel";
 import { InferAttributes, Op, Transaction } from "sequelize";
-import { BadRequestError, ConflitError, AppErrorCode, BadRequestErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, ServerErrorResponse, ConflitErrorResponse } from "../common/errors";
+import { BadRequestError, ConflitError, AppErrorCode, BadRequestErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, ServerErrorResponse, ConflitErrorResponse, AppError, NotFoundError } from "../common/errors";
 
 const DEFAULT_START_DATE: Date = new Date(2022, 1, 1);
 const DEFAULT_END_DATE: Date = new Date(2023, 1, 1);
@@ -102,14 +102,15 @@ export class SaleController extends Controller {
             }, 
             include: [
                 {
-                    association: Sale.associations.items1,
+                    association: Sale.associations.items,
+                    attributes: ["productId", "quantity", "price", "total"]
+                },
+                {
+                    association: Sale.associations.items2,
                     attributes: [],
                     where: {
                         ...(productId) ? {productId: productId} : {}
                     },
-                },
-                {
-                    association: Sale.associations.items2
                 }
             ],
             order: [["updatedAt", "asc"]],
@@ -120,6 +121,42 @@ export class SaleController extends Controller {
         return {
             status: 200,
             data: sales
+        };
+    }
+
+    /**
+     * @summary Retrieve a sale's information.
+     * 
+     *  @param saleId The sale's unique identifier.
+     */
+    @Get("{saleId}")
+    @Tags(TAG_SALES)
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
+    @SuccessResponse(200, "Successfully returned the sale info.")
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
+    public async getSaleInfo(
+        @Query() saleId: UUID,
+    ): Promise<GetSalesInfoResult> {
+        // Find sales
+        const result = await Sale.findByPk(saleId, {
+            include: {
+                association: Sale.associations.items,
+                attributes: ["productId", "quantity", "price", "total"]
+            },
+        });
+
+        if (result == null) {
+            return Promise.reject(new NotFoundError({
+                code: AppErrorCode.NOT_FOUND,
+                message: "Sale not found"
+            }));
+        }
+        console.log(result);
+        return {
+            status: 200,
+            data: toSaleInfo(result)
         };
     }
 
@@ -153,67 +190,82 @@ export class SaleController extends Controller {
             }));
         }
         
-        // Begin a Repeatable Read transaction.
-        // Big wall of business logic incoming!
+        // Begin a Repeatable Read transaction. Big wall of business logic incoming!
         const result = await Stock.sequelize!!.transaction(
             {isolationLevel: Transaction.ISOLATION_LEVELS.REPEATABLE_READ},
             async(transaction) => {
-                // Find all products in the list and at this location.
+                // Find all products on the list and at this location.
                 const stockResult: Stock[] = await Stock.findAll({
                     raw: true,
+                    nest: true,
                     where: { productId: productIds, locationId: locationId },
+                    include: {
+                        attributes: ["price"],
+                        association: Stock.associations.product
+                    },
                     transaction,
                 });
 
                 // Verify if every product exists and has enough quantity in stock.
                 const valid: boolean = list.every(item => {
                     const stock = stockResult.find(p => p.productId == item.productId);
-                    if (stock == null || stock.quantity < item.quantity) return false;
-
-                    // Let's update the stock here and save them later all at once.
-                    stock.quantity -= item.quantity;
-                    return true;
+                    return (stock != null && stock.quantity >= item.quantity);
                 });
-
-                // Abort the transaction now.
+            
+                // Stock invalid. End transaction.
                 if (!valid) {
-                    return null;
+                    return new ConflitError({
+                        message: "Can't create sale. Missing stock."
+                    });
                 }
 
-                // Go ahead and create a new sale.
+                // Create the list of products.
+                const items: InferAttributes<SaleItem>[] = list.map(item => {
+                    const stock: Stock = stockResult.find(p => p.productId == item.productId)!!;
+                    const price: number = stock.product!!.price;
+
+                    // Update stock here and update it all at once.
+                    stock.quantity -= item.quantity;
+                    
+                    return {
+                        saleId: "",                     // Must be updated later or the insert will fail!
+                        productId: item.productId,
+                        quantity: item.quantity,
+                        price: price,
+                        total: item.quantity * price
+                    }
+                });
+
+                // Create a new sale.
+                const totalPrice: number = items.reduce((acc, item) => acc + item.total, 0);
                 const sale: Sale = await Sale.create({
                     status: SaleStatus.COMPLETED,
                     sellerId: sellerId,
                     locationId: locationId,
+                    totalPrice: totalPrice,
                 }, {transaction});
-
-                // Now add the list of products.
-                const saleId: UUID = sale.saleId;
-                const items: InferAttributes<SaleItem>[] = list.map(item => ({
-                    saleId: saleId, 
-                    productId: item.productId, 
-                    quantity: item.quantity
-                }));
                 
-                // Create sale list
-                await SaleItem.bulkCreate(items, {transaction});
+                // Update saleId and save the list
+                const saleId = sale.saleId;
+                items.forEach(item => item.saleId = saleId);
+                const saleItems = await SaleItem.bulkCreate(items, {transaction});
 
                 // Update stock
                 await Stock.bulkCreate(stockResult, {transaction, updateOnDuplicate: ["quantity"]});
 
-                return saleId;
+                sale.items = saleItems;
+                return sale;
             }
         );
 
-        if (result == null) {
-            return Promise.reject(new ConflitError({
-                message: "Can't create sale. Either a product doesn't exist or doesn't have enough stock at this location."
-            }))
+        // Bubble up the error
+        if (result instanceof AppError) {
+            return Promise.reject(result);
         }
 
         return {
             status: 201,
-            data: result
+            data: toSaleInfo(result)
         };
     }
 }
@@ -227,9 +279,11 @@ export class SaleController extends Controller {
  * @returns The sale formatted as a SaleInfo object.
  */
 function toSaleInfo(sale: Sale): SaleInfo {
-    const items: SaleListItem[] = sale.items2?.map(item => ({
+    const items: SaleItemInfo[] = sale.items?.map(item => ({
         productId: item.productId,
-        quantity: item.quantity
+        quantity: item.quantity,
+        price: item.price,
+        total: item.total,
     })) || [];
 
     return {
@@ -240,13 +294,14 @@ function toSaleInfo(sale: Sale): SaleInfo {
         status: sale.status,
         createdAt: sale.createdAt,
         updatedAt: sale.updatedAt,
+        totalPrice: sale.totalPrice,
         items: items,
     }
 }
 
 // ------------------------------ Request Formats ------------------------------ //
 
-interface SaleListItem {
+interface CreateSaleListItem {
     productId: UUID,
     /** @isInt @minimum 1 minimum 1. */
     quantity: number,
@@ -255,10 +310,17 @@ interface SaleListItem {
 /** JSON request format for the "POST /sales" endpoint. */
 interface CreateSaleParams {
     locationId: UUID,
-    list: SaleListItem[]
+    list: CreateSaleListItem[]
 }
 
 // ------------------------------ Response Formats ------------------------------ //
+
+interface SaleItemInfo {
+    productId: UUID,
+    quantity: number,
+    price: number,
+    total: number,
+}
 
 interface SaleInfo {
     saleId: UUID,
@@ -268,7 +330,8 @@ interface SaleInfo {
     status: SaleStatus,
     createdAt: Date,
     updatedAt: Date,
-    items: SaleListItem[],
+    totalPrice: number,
+    items: SaleItemInfo[],
 }
 
 /** JSON response format for the "GET /sales" endpoint. */
@@ -277,8 +340,14 @@ export interface SearchSalesResult {
     data: SaleInfo[]
 }
 
+/** JSON response format for the "GET /sales" endpoint. */
+export interface GetSalesInfoResult {
+    status: 200,
+    data: SaleInfo
+}
+
 /** JSON response format for the "POST /sales" endpoint. */
 export interface CreateSaleResult {
     status: 201,
-    data: UUID
+    data: SaleInfo
 }

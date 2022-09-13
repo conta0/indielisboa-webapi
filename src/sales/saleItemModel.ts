@@ -9,6 +9,8 @@ export class SaleItem extends Model<InferAttributes<SaleItem>, InferCreationAttr
     declare saleId: ForeignKey<UUID>;
     declare productId: ForeignKey<UUID>;
     declare quantity: number;
+    declare price: number;
+    declare total: number;
 
     declare getSale: BelongsToGetAssociationMixin<Sale>;
     declare getProduct: BelongsToGetAssociationMixin<Product>;
@@ -44,6 +46,22 @@ async function initSaleItemModel(sequelize: Sequelize): Promise<void> {
                 allowNull: false,
                 validate: {
                     min: 1,
+                }
+            },
+            // Price in euro cents.
+            price: {
+                type: DataTypes.INTEGER,
+                allowNull: false,
+                validate: {
+                    min: 0,
+                }
+            },
+            // Total in euro cents.
+            total: {
+                type: DataTypes.INTEGER,
+                allowNull: false,
+                validate: {
+                    min: 0,
                 }
             }
         },

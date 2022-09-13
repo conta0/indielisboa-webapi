@@ -17,6 +17,7 @@ export class Sale extends Model<InferAttributes<Sale>, InferCreationAttributes<S
     declare sellerId: CreationOptional<UUID>;
     declare locationId: CreationOptional<UUID>;
     declare status: SaleStatus;
+    declare totalPrice: number;
     declare createdAt: CreationOptional<Date>;
     declare updatedAt: CreationOptional<Date>;
 
@@ -27,14 +28,13 @@ export class Sale extends Model<InferAttributes<Sale>, InferCreationAttributes<S
     declare getSeller: BelongsToGetAssociationMixin<User>;
 
     // Eager loaded properties
-    declare items1?: NonAttribute<SaleItem[]>;
-    declare items2?: NonAttribute<SaleItem[]>;
+    declare items?: NonAttribute<SaleItem[]>;
     declare customer?: NonAttribute<User>;
     declare seller?: NonAttribute<User>;
     declare location?: NonAttribute<Location>;
 
     declare static associations: {
-        items1: Association<Sale, SaleItem>,
+        items: Association<Sale, SaleItem>,
         items2: Association<Sale, SaleItem>,
         customer: Association<Sale, User>,
         seller: Association<Sale, User>,
@@ -70,6 +70,14 @@ async function initSaleModel(sequelize: Sequelize): Promise<void> {
                 allowNull: false,
                 values: Object.values(SaleStatus)
             },
+            // Price in euro cents.
+            totalPrice: {
+                type: DataTypes.BIGINT,
+                allowNull: false,
+                validate: {
+                    min: 0
+                }
+            },
             createdAt: {
                 type: DataTypes.DATE,
                 allowNull: false,
@@ -90,7 +98,7 @@ async function initSaleModel(sequelize: Sequelize): Promise<void> {
 async function initSaleAssociations(): Promise<void> {
     // Sequelize weirdness. If we want to join the same table N times, we need to add N associations.
     // The alternative is to make a raw query, but that is less generic and error prone. 
-    Sale.hasMany(SaleItem, {as: "items1", foreignKey: "saleId"});
+    Sale.hasMany(SaleItem, {as: "items", foreignKey: "saleId"});
     Sale.hasMany(SaleItem, {as: "items2", foreignKey: "saleId"});
 
     Sale.belongsTo(User, {as: "customer", foreignKey: "customerId"});

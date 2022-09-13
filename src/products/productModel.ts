@@ -24,6 +24,8 @@ export class Product extends Model<InferAttributes<Product>, InferCreationAttrib
     declare addLocation: BelongsToManyAddAssociationMixin<Location, Location["locationId"]>;
     /** Retrieve the product's stock */
     declare getStocks: HasManyGetAssociationsMixin<Stock>;
+    /** Retrieve the product's tags */
+    declare getTags: HasManyGetAssociationsMixin<Tag>;
 
     // Eager loaded properties.
     declare locations?: NonAttribute<Location[]>;
@@ -67,7 +69,7 @@ async function initProductModel(sequelize: Sequelize): Promise<void> {
                     notEmpty: true,
                 }
             },
-            // Store price in cents.
+            // Price in euro cents.
             price: {
                 type: DataTypes.INTEGER,
                 allowNull: false,

@@ -4,7 +4,7 @@ import { Role } from "../common/roles";
 import { SecurityScheme } from "../security/authorization";
 import { BagColour, TshirtColour, TshirtSize } from "./types";
 import { Product } from "./productModel";
-import { ForeignKeyConstraintError, Includeable, InferCreationAttributes, Model, Op, Order, OrderItem, Sequelize, Transaction, UniqueConstraintError, WhereOptions } from "sequelize";
+import { ForeignKeyConstraintError, Includeable, InferCreationAttributes, Model, Op, Order, OrderItem, Sequelize, Transaction, WhereOptions } from "sequelize";
 import { BadRequestError, ConflitError, AppErrorCode, NotFoundError, AppError, BadRequestErrorResponse, ServerErrorResponse, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, ConflitErrorResponse } from "../common/errors";
 import { Price, ProductCategory } from "./types";
 import { Stock } from "./stockModel";
@@ -492,7 +492,7 @@ export class ProductsController extends Controller {
                     message: "Product not found.",
                     fields: {
                         "productId": {
-                            message: "This productId doesn't exist.",
+                            message: "productId doesn't exist.",
                             value: productId
                         }
                     }
@@ -523,11 +523,6 @@ async function transactionRepeatableRead<T>(callback: SequelizeTransactionCallba
  */
  async function transactionReadCommitted<T>(callback: SequelizeTransactionCallback<T>): Promise<T> {
     return Product.sequelize!!.transaction({isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED}, callback);
-}
-
-interface ProductByPk {
-    product: Product,
-    tags: Model<any, any> | null
 }
 
 /**
@@ -683,6 +678,7 @@ interface CreateProductBaseParams {
     name: string,
     description: string,
     price: Price,
+    category?: ProductCategory,
 }
 
 interface CreateTshirtParams extends CreateProductBaseParams {
@@ -706,7 +702,8 @@ interface CreateBookParams extends CreateProductBaseParams {
     year: string,
 }
 
-// Product creation parameters must match one of these 
+// Product creation parameters must match one of these.
+// To add a new Product category, just update this definition. Follow the scheme above.
 type CreateProductParams = CreateTshirtParams | CreateBagParams | CreateBookParams;
 
 interface UpdateProductParams {
