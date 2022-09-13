@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Request, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
+import { Body, Controller, Get, Path, Post, Query, Request, Response, Route, Security, SuccessResponse, Tags } from "tsoa";
 import { Role } from "../common/roles";
 import { AuthRequest, SecurityScheme } from "../security/authorization";
 import { SaleItem } from "./saleItemModel";
@@ -137,7 +137,7 @@ export class SaleController extends Controller {
     @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
     @Response<ServerErrorResponse>(500, "Internal Server Error.")
     public async getSaleInfo(
-        @Query() saleId: UUID,
+        @Path() saleId: UUID,
     ): Promise<GetSalesInfoResult> {
         // Find sales
         const result = await Sale.findByPk(saleId, {

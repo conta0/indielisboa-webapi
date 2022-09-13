@@ -259,18 +259,8 @@ export class ProductsController extends Controller {
     public async createTshirt(
         @Body() body: CreateTshirtParams
     ) : Promise<CreateProductResult> {
-        body.category ??= ProductCategory.TSHIRT; 
-        const result = await createProduct(body);
-       
-        // Bubble up the error
-        if (result instanceof AppError) {
-            return Promise.reject(result);
-        }
-        
-        return {
-            status: 201,
-            data: result.productId,
-        }
+        body.category ??= ProductCategory.TSHIRT;
+        return this.createProduct(body);
     }
 
     /**
@@ -289,17 +279,7 @@ export class ProductsController extends Controller {
         @Body() body: CreateBagParams
     ) : Promise<CreateProductResult> {
         body.category ??= ProductCategory.BAG;
-        const result = await createProduct(body);
-        
-        // Bubble up the error
-        if (result instanceof AppError) {
-            return Promise.reject(result);
-        }
-        
-        return {
-            status: 201,
-            data: result.productId,
-        }
+        return this.createProduct(body);
     }
 
     /**
@@ -318,17 +298,7 @@ export class ProductsController extends Controller {
         @Body() body: CreateBookParams
     ) : Promise<CreateProductResult> {
         body.category ??= ProductCategory.BOOK;
-        const result = await createProduct(body);
-        
-        // Bubble up the error
-        if (result instanceof AppError) {
-            return Promise.reject(result);
-        }
-        
-        return {
-            status: 201,
-            data: result.productId,
-        }
+        return this.createProduct(body);
     }
 
     /**
@@ -636,10 +606,16 @@ async function createProduct(params: CreateProductParams): Promise<Product | App
                 [Sequelize.literal("DISTINCT(COUNT(*))"), "count"]
             ],
             where: {
-                name: tagNames,
-                value: tagValues,
+                [Op.or]: tagNames.map((name, idx) => ({name: name, value: tagValues[idx]}))
             },
-            group: "productId",
+            include: {
+                association: Tag.associations.product,
+                attributes: [],
+                where: {
+                    category: category
+                }
+            },
+            group: "Tag.productId",
             transaction: t,
         });
         
