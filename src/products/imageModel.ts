@@ -33,14 +33,11 @@ async function initImageModel(sequelize: Sequelize): Promise<void> {
                 }
             },
             data: {
-                type: DataTypes.BLOB,
+                type: DataTypes.TEXT,
                 allowNull: false,
                 validate: {
                     notEmpty: true
                 },
-                get() {
-                    return this.getDataValue("data").toString();
-                }
             },
         },
         {
