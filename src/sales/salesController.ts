@@ -131,7 +131,7 @@ export class SaleController extends Controller {
      */
     @Get("{saleId}")
     @Tags(TAG_SALES)
-    @Security(SecurityScheme.JWT, [Role.MANAGER])
+    @Security(SecurityScheme.JWT, [Role.SELLER])
     @SuccessResponse(200, "Successfully returned the sale info.")
     @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
     @Response<ForbiddenErrorResponse>(403, "Not Authorized.")

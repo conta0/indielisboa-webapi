@@ -145,7 +145,7 @@ export class UsersController extends Controller {
         });
 
         // Check if the request has sufficient privileges to view this user profile.
-        if (request.auth.userId !== userId && !hasRolePrivileges(request.auth.role, Role.MANAGER)) {
+        if (request.auth.userId !== userId && !hasRolePrivileges(request.auth.role, Role.SELLER)) {
             return Promise.reject(notFoundError);
         }
         

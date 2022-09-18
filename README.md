@@ -21,7 +21,8 @@ Secções:
 - [Estrutura da Aplicação](#estrutura-da-aplicação) - Organização dos ficheiros. 
 - [Configuração](#configuração) - Descreve o ficheiro de configuração. 
 - [Compilar, Executar e Testar](#compilar-executar-e-testar) - Descreve os comandos para iniciar a aplicação. 
-- [Servidor HTTPS](#servidor-https) - Explica como correr o servidor com o protocolo HTTPS. 
+- [Servidor HTTPS](#servidor-https) - Explica como correr o servidor para o protocolo HTTPS. 
+- [Cross-Origin Resource Sharing](#cross-origin-resource-sharing-cors) - Notas sobre o mecanismo CORS.
 - [Autenticação com conta Google](#autenticação-com-conta-google) - Descreve como utilizar a funcionalidade de autenticação com uma conta Google.
 - [Documentação da Web API](#documentação-da-web-api) - Formas de obter a documentação das rotas da aplicação. 
 - [Documentação Externa](#documentação-externa) - _Links_ para a documentação dos módulos NPM utilizados.
@@ -119,6 +120,19 @@ São necessários dois ficheiros na pasta `src/sslcerts`:
 - key.pem - a chave privada, em formato PEM.
 
 Se a chave privada estiver assinada, é obrigatório definir a _passphrase_ correspondente. 
+
+---
+
+## Cross-Origin Resource Sharing (CORS)
+
+O servidor utiliza **cookies** para autenticação e autorização do utilizador (_access token_ e _refresh token_). Uma aplicação cliente, de qualquer domínio, pode fazer pedidos ao servidor desde que a sua origem esteja definida no [parâmetro de configuração](#configuração) `server.ORGINS`.
+
+É obrigatório definir a propriedade `credentials` do pedido. Essa propriedade faz com que o browser do utilizador envie e guarde as cookies _cross-origin_.
+
+Exemplo utilizando a [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
+```javascript
+fetch("https://example.com", {"credentials": "include"});
+```
 
 ---
 
