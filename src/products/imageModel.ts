@@ -5,7 +5,8 @@ import { Product, PRODUCT_FK } from "./productModel";
 
 export class Image extends Model<InferAttributes<Image>, InferCreationAttributes<Image>> {
     declare productId: CreationOptional<UUID>;
-    declare data: string;
+    declare data: CreationOptional<string>;
+    declare url: CreationOptional<string>;
 
     /** Retrieve the associated Product. */
     declare getProduct: BelongsToGetAssociationMixin<Product>;
@@ -34,11 +35,18 @@ async function initImageModel(sequelize: Sequelize): Promise<void> {
             },
             data: {
                 type: DataTypes.TEXT,
-                allowNull: false,
+                allowNull: true,
                 validate: {
                     notEmpty: true
                 },
             },
+            url: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+                validate: {
+                    isUrl: true,
+                }
+            }
         },
         {
             sequelize: sequelize,

@@ -4,12 +4,13 @@ import { Role } from "../common/roles";
 import { SecurityScheme } from "../security/authorization";
 import { BagColour, TshirtColour, TshirtSize } from "./types";
 import { Product } from "./productModel";
-import { ForeignKeyConstraintError, Includeable, InferCreationAttributes, Model, Op, Order, OrderItem, Sequelize, Transaction, WhereOptions } from "sequelize";
+import { ForeignKeyConstraintError, Includeable, InferCreationAttributes, Op, Order, OrderItem, Sequelize, Transaction, WhereOptions } from "sequelize";
 import { BadRequestError, ConflitError, AppErrorCode, NotFoundError, AppError, BadRequestErrorResponse, ServerErrorResponse, NotFoundErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, ConflitErrorResponse } from "../common/errors";
 import { Price, ProductCategory } from "./types";
 import { Stock } from "./stockModel";
 import { Image } from "./imageModel";
 import { Tag } from "./tagModel";
+import { generateS3SignedUrl, ImageFileType } from "./ImageService";
 
 // ------------------------------ Types ------------------------------ //
 
@@ -107,7 +108,7 @@ export class ProductsController extends Controller {
             {
                 required: false,
                 association: Product.associations.image,
-                attributes: ["data"]
+                attributes: ["data", "url"]
             },
             {
                 required: false,
@@ -431,6 +432,54 @@ export class ProductsController extends Controller {
     }
 
     /**
+     * Associates this product's image to an URL. You may upload the image file to the returned URL. 
+     * 
+     * @summary Retrieve the product-s image URL.
+     * 
+     * @param productId The product's unique identifier.
+     */
+    @Get("{productId}/image/url")
+    @Tags(TAG_PRODUCTS)
+    @Security(SecurityScheme.JWT, [Role.MANAGER])
+    @SuccessResponse(200, "Successfully updated the image.")
+    @Response<BadRequestErrorResponse>(400, "Bad Request.")
+    @Response<AuthenticationErrorResponse>(401, "Not Authenticated.")
+    @Response<ForbiddenErrorResponse>(403, "Not Authorized.")
+    @Response<NotFoundError>(404, "Product not found.")
+    @Response<ServerErrorResponse>(500, "Internal Server Error.")
+    public async getImageSignedUrl(
+        @Path() productId: UUID,
+        @Query() fileType: ImageFileType,
+    ) : Promise<GetImageSignedUrlResponse> {
+        const result = await generateS3SignedUrl(productId, fileType);
+        
+        try {
+            await Image.upsert({productId: productId, url: result.url});
+            return {
+                status: 200,
+                data: result
+            }
+
+        } catch(err) {
+            // Product not found
+            if (err instanceof ForeignKeyConstraintError) {
+                return Promise.reject(new NotFoundError({
+                    code: AppErrorCode.NOT_FOUND,
+                    message: "Product not found.",
+                    fields: {
+                        "productId": {
+                            message: "productId doesn't exist.",
+                            value: productId
+                        }
+                    }
+                }));
+            }
+
+            throw err;
+        }
+    }
+
+    /**
      * Updates the image of a product. If an image already exist, it will be replaced.
      * 
      * @summary Update the image of a product.
@@ -512,7 +561,7 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
         {
             required: false,
             association: Product.associations.image,
-            attributes: ["data"],
+            attributes: ["data", "url"],
         },
         {
             required: false,
@@ -551,6 +600,7 @@ async function getProductByPk(productId: Product["productId"], transaction?: Tra
         price: product.price,
         status: status,
         image: product.image?.data,
+        url: product.image?.url,
         category: product.category,
         tags: tags,
         stock: stock || [],
@@ -575,6 +625,7 @@ function toProductPublicInfo(product: Product): ProductPublicInfo {
         price: protectedInfo.price,
         status: protectedInfo.status,
         image: protectedInfo.image,
+        url: protectedInfo.url,
         category: protectedInfo.category,
         tags: protectedInfo.tags,
     }
@@ -720,6 +771,7 @@ interface ProductProtectedInfo {
     price: number,
     status: ProductStatus,
     image?: string,
+    url?: string,
     category: ProductCategory,
     tags: ProductCategoryTags,
     stock: ProductStockInfo[],
@@ -757,4 +809,12 @@ interface CreateProductResult {
 interface UpdateProductResult {
     status: 200,
     data: ProductProtectedInfo
+}
+
+interface GetImageSignedUrlResponse {
+    status: 200,
+    data: {
+        url: string,
+        signed: string,
+    }
 }

@@ -59,4 +59,4 @@ const PASSPHRASE: string = process.env.CERT_PASSPHRASE || config.server.CERT_PAS
     } else {
         http.createServer(app).listen(PORT, () => { appLogger.info((`HTTP Server started on port ${PORT}`)); });
     }
-})().catch(console.error);
+})().catch(appLogger.error);
