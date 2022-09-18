@@ -32,13 +32,18 @@ export enum TshirtColour {
     YELLOW = "yellow",
     ORANGE = "orange",
     PURPLE = "purple",
+    BLACK = "black",
+    WHITE = "white",
 }
 
 /** The available Bag categories */
 export enum BagColour {
     RED = "red",
-    GREEN = "green", 
+    GREEN = "green",
     BLUE = "blue",
-    WHITE = "white",
+    YELLOW = "yellow",
+    ORANGE = "orange",
+    PURPLE = "purple",
     BLACK = "black",
+    WHITE = "white",
 }

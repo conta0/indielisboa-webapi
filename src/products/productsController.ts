@@ -434,7 +434,7 @@ export class ProductsController extends Controller {
     /**
      * Associates this product's image to an URL. You may upload the image file to the returned URL. 
      * 
-     * @summary Retrieve the product-s image URL.
+     * @summary Retrieve the product's image URL.
      * 
      * @param productId The product's unique identifier.
      */
