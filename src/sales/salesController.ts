@@ -7,6 +7,7 @@ import { UUID } from "../common/types";
 import { Stock } from "../products/stockModel";
 import { InferAttributes, Op, Transaction } from "sequelize";
 import { BadRequestError, ConflitError, AppErrorCode, BadRequestErrorResponse, AuthenticationErrorResponse, ForbiddenErrorResponse, ServerErrorResponse, ConflitErrorResponse, AppError, NotFoundError } from "../common/errors";
+import { User } from "../users/userModel";
 
 const DEFAULT_START_DATE: Date = new Date(2022, 1, 1);
 const DEFAULT_END_DATE: Date = new Date(2023, 1, 1);
@@ -102,6 +103,10 @@ export class SaleController extends Controller {
             }, 
             include: [
                 {
+                    association: Sale.associations.seller,
+                    attributes: ["name"],
+                },
+                {
                     association: Sale.associations.items,
                     attributes: ["productId", "quantity", "price", "total"]
                 },
@@ -111,7 +116,7 @@ export class SaleController extends Controller {
                     where: {
                         ...(productId) ? {productId: productId} : {}
                     },
-                }
+                },
             ],
             order: [["updatedAt", "asc"]],
         });
@@ -141,10 +146,16 @@ export class SaleController extends Controller {
     ): Promise<GetSalesInfoResult> {
         // Find sales
         const result = await Sale.findByPk(saleId, {
-            include: {
-                association: Sale.associations.items,
-                attributes: ["productId", "quantity", "price", "total"]
-            },
+            include: [
+                {
+                    association: Sale.associations.items,
+                    attributes: ["productId", "quantity", "price", "total"],
+                },
+                {
+                    association: Sale.associations.seller,
+                    attributes: ["name"],
+                },
+            ],
         });
 
         if (result == null) {
@@ -219,6 +230,21 @@ export class SaleController extends Controller {
                     });
                 }
 
+                // Get seller info
+                const seller = await User.findByPk(sellerId, {attributes: ["name"], transaction});
+                if (seller == null) {
+                    return new AppError({
+                        code: AppErrorCode.NOT_FOUND,
+                        message: "User not found.",
+                        fields: {
+                            "sellerId": {
+                                message: "sellerId doesn't exist.",
+                                value: sellerId
+                            }
+                        }
+                    })
+                };
+
                 // Create the list of products.
                 const items: InferAttributes<SaleItem>[] = list.map(item => {
                     const stock: Stock = stockResult.find(p => p.productId == item.productId)!!;
@@ -238,13 +264,16 @@ export class SaleController extends Controller {
 
                 // Create a new sale.
                 const totalPrice: number = items.reduce((acc, item) => acc + item.total, 0);
-                const sale: Sale = await Sale.create({
-                    status: SaleStatus.COMPLETED,
-                    sellerId: sellerId,
-                    locationId: locationId,
-                    totalPrice: totalPrice,
-                }, {transaction});
-                
+                const sale: Sale = await Sale.create(
+                    {
+                        status: SaleStatus.COMPLETED,
+                        sellerId: sellerId,
+                        locationId: locationId,
+                        totalPrice: totalPrice,
+                    },
+                    { transaction }
+                );
+
                 // Update saleId and save the list
                 const saleId = sale.saleId;
                 items.forEach(item => item.saleId = saleId);
@@ -252,8 +281,10 @@ export class SaleController extends Controller {
 
                 // Update stock
                 await Stock.bulkCreate(stockResult, {transaction, updateOnDuplicate: ["quantity"]});
-
+                
+                // Append associations
                 sale.items = saleItems;
+                sale.seller = seller;
                 return sale;
             }
         );
@@ -290,6 +321,7 @@ function toSaleInfo(sale: Sale): SaleInfo {
         saleId: sale.saleId,
         customerId: sale.customerId,
         sellerId: sale.sellerId,
+        sellerName: sale.seller!!.name,
         locationId: sale.locationId,
         status: sale.status,
         createdAt: sale.createdAt,
@@ -326,6 +358,7 @@ interface SaleInfo {
     saleId: UUID,
     customerId: UUID,
     sellerId: UUID,
+    sellerName: string,
     locationId: UUID,
     status: SaleStatus,
     createdAt: Date,
