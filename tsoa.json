@@ -19,4 +19,5 @@
       "routesDir": "src",
       "authenticationModule": "./src/security/authorization"
     }
+    
 }
